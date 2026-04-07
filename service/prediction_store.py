@@ -10,6 +10,9 @@ MOCK_PREDICTIONS = [
 ]
 
 def lookup_prediction(city, prediction_type, horizon_months):
+    if city is None or prediction_type is None or horizon_months is None:
+        return None
+
     for p in MOCK_PREDICTIONS:
         if (
             p["city"].lower() == city.lower()
@@ -17,4 +20,5 @@ def lookup_prediction(city, prediction_type, horizon_months):
             and p["horizon_months"] == horizon_months
         ):
             return p
+
     return None

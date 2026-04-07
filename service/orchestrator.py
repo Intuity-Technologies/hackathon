@@ -1,33 +1,33 @@
 from prediction_store import lookup_prediction
 from render import render_prediction
 from llm_client import call_llm
-
-
-def parse_question(question: str):
-    """
-    Very simple intent parser for now.
-    This can be improved later without changing orchestration logic.
-    """
-    q = question.lower()
-
-    city = "Galway" if "galway" in q else None
-    prediction_type = "median_price" if "price" in q else None
-    horizon = 12 if ("year" in q or "12" in q) else None
-
-    return city, prediction_type, horizon
+from intent_extractor import extract_intent
 
 
 def answer(question: str):
-    city, prediction_type, horizon = parse_question(question)
+    # 1️⃣ Extract structured intent using LLM (JSON only)
+    intent = extract_intent(question)
 
+    city = intent["city"]
+    topic = intent["topic"]
+    horizon = intent["horizon_months"]
+
+    # 2️⃣ Map topic → prediction type
+    prediction_type = None
+    if topic == "price":
+        prediction_type = "median_price"
+    elif topic == "rent":
+        prediction_type = "rent"
+
+    # 3️⃣ Deterministic lookup
     prediction = lookup_prediction(city, prediction_type, horizon)
 
     if prediction:
         # 🔒 HARD GUARANTEE:
-        # If a prediction exists, the LLM is NEVER called.
+        # If a prediction exists, the LLM is NEVER used for answers
         return render_prediction(prediction)
 
-    # ✅ Only reached when NO model output exists
+    # ✅ LLM fallback only when no artifact exists
     return call_llm(question)
 
 
