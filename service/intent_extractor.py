@@ -14,14 +14,17 @@ You extract structured intent from housing questions.
 Return ONLY valid JSON matching this schema:
 {
   "city": string | null,
-  "topic": "price" | "rent" | null,
+  "topic": "price" | "rent" | "homelessness" | "population_density" | null,
   "horizon_months": number | null
 }
 
 Rules:
-- Use "price" for anything about house prices, costs, affordability, or how expensive housing is.
-- Use "rent" only for rental-related questions.
-- Use null if the value cannot be confidently inferred.
+- Use "price" for anything about house prices, housing costs, affordability, or how expensive buying a home is.
+- Use "rent" for questions about renting, rental prices, or cost of renting.
+- Use "homelessness" for questions about homelessness, rough sleeping, housing insecurity, or emergency accommodation.
+- Use "population_density" for questions about how dense, urban, or spread out a city is.
+- Only set "horizon_months" if the question clearly refers to a future time (e.g. "next year", "in a year").
+- Use null if a value cannot be confidently inferred.
 - Do NOT include explanations or extra text.
 """
 
