@@ -23,10 +23,10 @@ MOCK_PREDICTIONS = [
         "predicted_value": 1650,
         "confidence": 0.85,
         "model_name": "regression_v1"
-    }
+    },
     {
         "city": "Galway",
-        "prediction_type": "homelessness_status",
+        "prediction_type": "homelessness",
         "description": (
             "Homelessness in Galway is influenced by housing supply constraints, "
             "rental affordability, and availability of emergency accommodation."

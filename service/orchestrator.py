@@ -1,7 +1,7 @@
-from prediction_store import lookup_prediction
-from render import render_prediction
-from llm_client import call_llm
-from intent_extractor import extract_intent
+from service.prediction_store import lookup_prediction
+from service.render import render_prediction
+from service.llm_client import call_llm
+from service.intent_extractor import extract_intent
 
 
 def answer(question: str):
@@ -23,7 +23,7 @@ def answer(question: str):
     prediction = lookup_prediction(city, prediction_type, horizon)
 
     if prediction:
-        # 🔒 HARD GUARANTEE:
+        # HARD GUARANTEE:
         # If a prediction exists, the LLM is NEVER used for answers
         return render_prediction(prediction)
 
