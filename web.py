@@ -2,7 +2,7 @@
 from flask import Flask, request, render_template, session, redirect, url_for, jsonify
 from service.orchestrator import answer
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="images", static_url_path="/images")
 app.secret_key = "demo-secret-key"
 
 @app.route("/", methods=["GET"])

@@ -7,6 +7,7 @@
 
 <style>
 :root {
+  
   /* Backgrounds */
   --bg: #0d1117;          /* dark metallic grey */
   --panel: #161b22;       /* slightly lighter card */
@@ -34,6 +35,12 @@ html,body{
               radial-gradient(900px 600px at 80% 10%, rgba(30,58,138,.25), transparent 60%),
               var(--bg);
   color: var(--text);
+}
+
+
+.logo {
+  height: 25px;
+  width: auto;
 }
 
 .app{
@@ -180,15 +187,10 @@ button:disabled{ opacity:.6; cursor:not-allowed; }
 <div class="app">
   <div class="header">
     <div>Housing Analysis Assistant</div>
+    <img src="/images/intuity_logo.png" alt="Intuity logo" class="logo">
   </div>
 
-  <div class="chat" id="chat">
-    {% for m in messages %}
-      <div class="row {{ m.role }}">
-        <div class="bubble">{{ m.content }}</div>
-      </div>
-    {% endfor %}
-  </div>
+  <div class="chat" id="chat"></div>
 
   <form class="input-area" id="chat-form">
     <textarea id="chat-input" name="question" rows="2" placeholder="Ask a housing question…" autofocus></textarea>

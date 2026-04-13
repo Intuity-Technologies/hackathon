@@ -32,12 +32,9 @@ Action:
 df = pd.read_csv(RAW_PATH)
 
 if df.empty:
-    raise ValueError("❌ Raw CSV loaded but contains no rows.")
+    raise ValueError("Raw CSV loaded but contains no rows.")
 
-# ----------------------------
-# Define the artifact schema
-# (THIS is the contract)
-# ----------------------------
+
 ARTIFACT_COLUMNS = [
     # identifiers
     "area_name",
@@ -59,6 +56,12 @@ ARTIFACT_COLUMNS = [
     "rent_growth",
     "population_growth",
     "housing_completions",
+
+    
+    # explanations
+    "factual_explanation",
+    "semi_factual_explanation",
+    "counterfactual_explanation",
 ]
 
 # ----------------------------

@@ -5,19 +5,20 @@ from service.intent_extractor import extract_intent
 
 
 def answer(question: str):
-    # 1 Extract intent (LLM, intent only)
+    # 1 Extract intent (LLM used ONLY for intent)
     intent = extract_intent(question)
 
     area = intent.get("area")
     field = intent.get("field")
     time_period = intent.get("time_period")
 
-    # 2 Deterministic lookup (NO LLM)
-    artifact = lookup_prediction(area, time_period)
+    # 2 Deterministic path ONLY if intent is complete
+    if area and field and time_period:
+        artifact = lookup_prediction(area, time_period)
+        if artifact:
+            rendered = render_prediction(artifact, field)
+            if rendered:
+                return rendered
 
-    if artifact:
-        # Guaranteed: no LLM touches data
-        return render_prediction(artifact, field)
-
-    # 3 LLM fallback ONLY if no artifact exists
+    # 3 Anything else → LLM fallback
     return call_llm(question)
