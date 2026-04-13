@@ -1,7 +1,17 @@
+from __future__ import annotations
+
 import os
 
 from flask import Flask, jsonify, redirect, render_template, request, session, url_for
 
+from service.housing_data import (
+    compare_areas,
+    get_area_detail,
+    get_leaderboard,
+    get_overview,
+    get_sources_manifest,
+    list_available_areas,
+)
 from service.orchestrator import answer
 
 MAX_SESSION_MESSAGES = 30
@@ -27,7 +37,21 @@ def _trim_messages(messages: list[dict[str, str]]) -> list[dict[str, str]]:
 @app.route("/", methods=["GET"])
 def index():
     messages = _ensure_messages()
-    return render_template("index.html", messages=messages)
+    overview = get_overview()
+    leaderboard = get_leaderboard()
+    areas = list_available_areas()
+    featured_area = get_area_detail(overview["featured_counties"][0]["area_name"])
+    default_compare = compare_areas(areas[:2])
+    return render_template(
+        "index.html",
+        messages=messages,
+        overview=overview,
+        leaderboard=leaderboard,
+        available_areas=areas,
+        featured_area=featured_area,
+        default_compare=default_compare,
+        sources_manifest=get_sources_manifest(),
+    )
 
 
 @app.route("/api/ask", methods=["POST"])
@@ -41,9 +65,7 @@ def api_ask():
         return jsonify({"ok": False, "error": "Empty question"}), 400
 
     messages.append({"role": "user", "content": question})
-
     reply = answer(question)
-
     messages.append({"role": "assistant", "content": reply})
     session["messages"] = _trim_messages(messages)
     session.modified = True

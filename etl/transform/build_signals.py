@@ -1,69 +1,46 @@
-import io
-import json
-import os
+from __future__ import annotations
+
 from typing import Tuple
 
 import pandas as pd
-from azure.identity import DefaultAzureCredential
-from azure.storage.filedatalake import DataLakeServiceClient
 
 from etl.common.scoring import minmax_score
+from etl.common.storage import StorageBackend, build_storage_backend, utc_now_iso
 
-AREA_LEVEL = os.getenv("AREA_LEVEL", "county")
+AREA_LEVEL = "county"
 
-CURATED_FS = os.getenv("CURATED_FILE_SYSTEM", "curated")
-SIGNALS_FS = os.getenv("SIGNALS_FILE_SYSTEM", "signals")
-POPULATION_CURATED_PATH = os.getenv(
-    "POPULATION_CURATED_PATH",
-    f"population/area_level={AREA_LEVEL}/part-000.parquet",
-)
-RENTS_CURATED_PATH = os.getenv(
-    "RENTS_CURATED_PATH",
-    f"rents/area_level={AREA_LEVEL}/part-000.parquet",
-)
-PLANNING_CURATED_PATH = os.getenv(
-    "PLANNING_CURATED_PATH",
-    f"planning/area_level={AREA_LEVEL}/part-000.parquet",
-)
-SIGNALS_FILE_PATH = os.getenv(
-    "SIGNALS_FILE_PATH",
-    f"housing_pressure/area_level={AREA_LEVEL}/part-000.parquet",
-)
-SIGNALS_LATEST_JSON_PATH = os.getenv(
-    "SIGNALS_LATEST_JSON_PATH",
-    "housing_pressure/latest.json",
-)
+CURATED_FS = "curated"
+SIGNALS_FS = "signals"
+POPULATION_CURATED_PATH = "population/area_level=county/part-000.parquet"
+RENTS_CURATED_PATH = "rents/area_level=county/part-000.parquet"
+PLANNING_CURATED_PATH = "planning/area_level=county/part-000.parquet"
+SIGNALS_FILE_PATH = "housing_pressure/area_level=county/part-000.parquet"
+SIGNALS_CSV_PATH = "housing_pressure/area_level=county/signals.csv"
+SIGNALS_LATEST_JSON_PATH = "housing_pressure/latest.json"
 
+MODEL_FEATURE_COLUMNS = [
+    "population_growth",
+    "rent_growth",
+    "housing_completions",
+    "population_growth_score",
+    "rent_pressure_score",
+    "supply_gap_score",
+    "overall_housing_pressure_score",
+    "score_qoq_change",
+    "score_4q_avg",
+    "rent_growth_4q_avg",
+    "population_growth_4q_avg",
+    "score_percentile_in_period",
+]
 
-def get_service_client() -> DataLakeServiceClient:
-    storage_account = os.getenv("AZURE_STORAGE_ACCOUNT", "").strip()
-    if not storage_account:
-        raise ValueError("AZURE_STORAGE_ACCOUNT env var not set")
-    return DataLakeServiceClient(
-        account_url=f"https://{storage_account}.dfs.core.windows.net",
-        credential=DefaultAzureCredential(),
-    )
+SOURCE_NAME = "CSO and Department of Housing composite housing pressure pipeline"
+QUALITY_FLAG = "verified-composite"
 
 
-def read_parquet_from_adls(file_system: str, path: str) -> pd.DataFrame:
-    svc = get_service_client()
-    fs = svc.get_file_system_client(file_system)
-    file_client = fs.get_file_client(path)
-    data = file_client.download_file().readall()
-    return pd.read_parquet(io.BytesIO(data))
+def _env(name: str, default: str) -> str:
+    import os
 
-
-def upload_bytes(file_system: str, path: str, payload: bytes) -> None:
-    svc = get_service_client()
-    fs = svc.get_file_system_client(file_system)
-    file_client = fs.get_file_client(path)
-
-    if file_client.exists():
-        file_client.delete_file()
-
-    file_client.create_file()
-    file_client.append_data(data=payload, offset=0, length=len(payload))
-    file_client.flush_data(len(payload))
+    return os.getenv(name, default)
 
 
 def classify(score: float) -> str:
@@ -96,17 +73,25 @@ def build_explanation(row: pd.Series) -> str:
     )
 
 
-def load_curated_inputs() -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    pop = read_parquet_from_adls(CURATED_FS, POPULATION_CURATED_PATH)
-    rents = read_parquet_from_adls(CURATED_FS, RENTS_CURATED_PATH)
-    planning = read_parquet_from_adls(CURATED_FS, PLANNING_CURATED_PATH)
+def load_curated_inputs(storage: StorageBackend | None = None) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    backend = storage or build_storage_backend()
+    pop = backend.read_parquet(
+        _env("CURATED_FILE_SYSTEM", CURATED_FS),
+        _env("POPULATION_CURATED_PATH", POPULATION_CURATED_PATH),
+    )
+    rents = backend.read_parquet(
+        _env("CURATED_FILE_SYSTEM", CURATED_FS),
+        _env("RENTS_CURATED_PATH", RENTS_CURATED_PATH),
+    )
+    planning = backend.read_parquet(
+        _env("CURATED_FILE_SYSTEM", CURATED_FS),
+        _env("PLANNING_CURATED_PATH", PLANNING_CURATED_PATH),
+    )
     return pop, rents, planning
 
 
 def _extract_year(period_series: pd.Series) -> pd.Series:
-    return (
-        period_series.astype(str).str.extract(r"^(\d{4})", expand=False).astype(float)
-    )
+    return period_series.astype(str).str.extract(r"^(\d{4})", expand=False).astype(float)
 
 
 def _is_quarterly(period_series: pd.Series) -> bool:
@@ -129,9 +114,14 @@ def _period_index(period_series: pd.Series) -> pd.Series:
     return pd.to_numeric(idx, errors="coerce")
 
 
-def main() -> None:
-    pop, rents, planning = load_curated_inputs()
-
+def build_signal_dataframe(
+    pop: pd.DataFrame,
+    rents: pd.DataFrame,
+    planning: pd.DataFrame,
+    *,
+    published_at: str | None = None,
+    data_mode: str = "local",
+) -> pd.DataFrame:
     required_pop = {"area_name", "area_level", "population_growth"}
     required_rents = {"area_name", "area_level", "rent_growth"}
     required_planning = {"area_name", "area_level", "housing_completions"}
@@ -160,9 +150,7 @@ def main() -> None:
     )
 
     if _is_quarterly(planning_work["time_period"]):
-        planning_quarterly = planning_work.rename(
-            columns={"time_period": "signal_time_period"}
-        )[
+        planning_quarterly = planning_work.rename(columns={"time_period": "signal_time_period"})[
             ["area_name", "area_level", "signal_time_period", "housing_completions"]
         ]
         df = df.merge(
@@ -187,9 +175,7 @@ def main() -> None:
             .rename(columns={"housing_completions": "housing_completions_fallback"})
         )
         df = df.merge(fill, on=["area_name", "area_level"], how="left")
-        df["housing_completions"] = df["housing_completions"].fillna(
-            df["housing_completions_fallback"]
-        )
+        df["housing_completions"] = df["housing_completions"].fillna(df["housing_completions_fallback"])
         df = df.drop(columns=["housing_completions_fallback"])
 
     df["time_period"] = df["signal_time_period"]
@@ -200,17 +186,17 @@ def main() -> None:
 
     df["population_growth_score"] = (
         df.groupby("time_period")["population_growth"]
-        .transform(lambda s: minmax_score(s.astype(float)))
+        .transform(lambda series: minmax_score(series.astype(float)))
         .astype(float)
     )
     df["rent_pressure_score"] = (
         df.groupby("time_period")["rent_growth"]
-        .transform(lambda s: minmax_score(s.astype(float)))
+        .transform(lambda series: minmax_score(series.astype(float)))
         .astype(float)
     )
     df["supply_gap_score"] = 100.0 - (
         df.groupby("time_period")["housing_completions"]
-        .transform(lambda s: minmax_score(s.astype(float)))
+        .transform(lambda series: minmax_score(series.astype(float)))
         .astype(float)
     )
 
@@ -226,20 +212,18 @@ def main() -> None:
     df["time_index"] = _period_index(df["time_period"])
 
     df = df.sort_values(["area_name", "time_index"])
-    df["score_qoq_change"] = df.groupby("area_name")[
-        "overall_housing_pressure_score"
-    ].diff()
+    df["score_qoq_change"] = df.groupby("area_name")["overall_housing_pressure_score"].diff()
     df["score_4q_avg"] = (
         df.groupby("area_name")["overall_housing_pressure_score"]
-        .transform(lambda s: s.rolling(4, min_periods=1).mean())
+        .transform(lambda series: series.rolling(4, min_periods=1).mean())
     )
     df["rent_growth_4q_avg"] = (
         df.groupby("area_name")["rent_growth"]
-        .transform(lambda s: s.rolling(4, min_periods=1).mean())
+        .transform(lambda series: series.rolling(4, min_periods=1).mean())
     )
     df["population_growth_4q_avg"] = (
         df.groupby("area_name")["population_growth"]
-        .transform(lambda s: s.rolling(4, min_periods=1).mean())
+        .transform(lambda series: series.rolling(4, min_periods=1).mean())
     )
     df["score_rank_in_period"] = (
         df.groupby("time_period")["overall_housing_pressure_score"]
@@ -247,35 +231,56 @@ def main() -> None:
         .astype(int)
     )
     df["score_percentile_in_period"] = (
-        df.groupby("time_period")["overall_housing_pressure_score"]
-        .rank(pct=True)
-        .astype(float)
-        * 100.0
+        df.groupby("time_period")["overall_housing_pressure_score"].rank(pct=True).astype(float) * 100.0
     )
     df["model_feature_version"] = "v1"
 
+    generated_at = published_at or utc_now_iso()
+    df["geography_level"] = AREA_LEVEL
+    df["coverage_scope"] = "County"
+    df["source_name"] = SOURCE_NAME
+    df["source_period"] = df["time_period"].astype(str)
+    df["published_at"] = generated_at
+    df["quality_flag"] = QUALITY_FLAG
+    df["data_mode"] = data_mode
+
     df = df.sort_values(
-        ["time_index", "overall_housing_pressure_score"], ascending=[False, False]
+        ["time_index", "overall_housing_pressure_score"],
+        ascending=[False, False],
     ).reset_index(drop=True)
 
-    parquet_buffer = io.BytesIO()
-    df.to_parquet(parquet_buffer, index=False)
-    upload_bytes(
-        SIGNALS_FS,
-        SIGNALS_FILE_PATH,
-        parquet_buffer.getvalue(),
+    return df
+
+
+def publish_signal_outputs(df: pd.DataFrame, storage: StorageBackend | None = None) -> None:
+    backend = storage or build_storage_backend()
+    file_system = _env("SIGNALS_FILE_SYSTEM", SIGNALS_FS)
+    backend.write_parquet(file_system, _env("SIGNALS_FILE_PATH", SIGNALS_FILE_PATH), df)
+    backend.write_text(
+        file_system,
+        _env("SIGNALS_CSV_PATH", SIGNALS_CSV_PATH),
+        df.to_csv(index=False),
+    )
+    backend.write_json(
+        file_system,
+        _env("SIGNALS_LATEST_JSON_PATH", SIGNALS_LATEST_JSON_PATH),
+        df.to_dict(orient="records"),
     )
 
-    latest_json = df.to_dict(orient="records")
-    upload_bytes(
-        SIGNALS_FS,
-        SIGNALS_LATEST_JSON_PATH,
-        json.dumps(latest_json, ensure_ascii=False, indent=2).encode("utf-8"),
-    )
 
+def run_signal_pipeline(storage: StorageBackend | None = None) -> pd.DataFrame:
+    backend = storage or build_storage_backend()
+    pop, rents, planning = load_curated_inputs(backend)
+    df = build_signal_dataframe(pop, rents, planning, data_mode=backend.data_mode)
+    publish_signal_outputs(df, backend)
+    return df
+
+
+def main() -> None:
+    df = run_signal_pipeline()
     print(
         f"Wrote {len(df)} signal rows to "
-        f"{SIGNALS_FS}/{SIGNALS_FILE_PATH} and {SIGNALS_FS}/{SIGNALS_LATEST_JSON_PATH}"
+        f"{_env('SIGNALS_FILE_SYSTEM', SIGNALS_FS)}/{_env('SIGNALS_FILE_PATH', SIGNALS_FILE_PATH)}"
     )
 
 

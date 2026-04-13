@@ -5,51 +5,130 @@
   "required": [
     "area_name",
     "area_level",
+    "geography_level",
+    "coverage_scope",
     "time_period",
+    "classification",
     "overall_housing_pressure_score",
-    "classification"
+    "dominant_driver",
+    "area_context",
+    "context_signals",
+    "provenance",
+    "freshness",
+    "quality_flag",
+    "data_mode"
   ],
   "properties": {
-    "area_name": {
-      "type": "string"
+    "area_name": { "type": "string" },
+    "area_level": { "type": "string" },
+    "geography_level": { "type": "string" },
+    "coverage_scope": { "type": "string" },
+    "time_period": { "type": "string" },
+    "classification": { "type": "string" },
+    "dominant_driver": { "type": "string" },
+    "overall_housing_pressure_score": { "type": "number" },
+    "score_rank_in_period": { "type": "integer" },
+    "score_percentile_in_period": { "type": "number" },
+    "score_qoq_change": { "type": ["number", "null"] },
+    "rent_growth": { "type": "number" },
+    "population_growth": { "type": "number" },
+    "housing_completions": { "type": "number" },
+    "median_sale_price": { "type": ["number", "null"] },
+    "median_sale_price_display": { "type": ["string", "null"] },
+    "area_context": {
+      "type": "object",
+      "required": ["score_breakdown", "explanation_summary"],
+      "properties": {
+        "region": { "type": ["string", "null"] },
+        "moving_average_score": { "type": "number" },
+        "explanation_summary": { "type": "string" },
+        "score_breakdown": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["label", "value"],
+            "properties": {
+              "label": { "type": "string" },
+              "value": { "type": "number" }
+            }
+          }
+        }
+      }
     },
-    "area_level": {
-      "type": "string",
-      "enum": [
-        "county",
-        "national"
-      ]
+    "context_signals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "display_value",
+          "source_name",
+          "source_period",
+          "geography_level",
+          "coverage_scope",
+          "quality_flag",
+          "data_mode"
+        ],
+        "properties": {
+          "id": { "type": "string" },
+          "label": { "type": "string" },
+          "metric": { "type": "string" },
+          "value": { "type": ["number", "null"] },
+          "display_value": { "type": "string" },
+          "secondary_display": { "type": ["string", "null"] },
+          "source_name": { "type": "string" },
+          "source_period": { "type": "string" },
+          "geography_level": { "type": "string" },
+          "coverage_scope": { "type": "string" },
+          "quality_flag": { "type": "string" },
+          "data_mode": { "type": "string" }
+        }
+      }
     },
-    "time_period": {
-      "type": "string"
+    "trend": {
+      "type": "object",
+      "properties": {
+        "latest_qoq_change": { "type": ["number", "null"] },
+        "series": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["time_period", "overall_housing_pressure_score", "classification"],
+            "properties": {
+              "time_period": { "type": "string" },
+              "overall_housing_pressure_score": { "type": "number" },
+              "rent_growth": { "type": "number" },
+              "population_growth": { "type": "number" },
+              "housing_completions": { "type": "number" },
+              "classification": { "type": "string" }
+            }
+          }
+        }
+      }
     },
-    "overall_housing_pressure_score": {
-      "type": "number"
+    "provenance": {
+      "type": "object",
+      "required": ["source_name", "source_period", "published_at"],
+      "properties": {
+        "source_name": { "type": "string" },
+        "source_period": { "type": "string" },
+        "published_at": { "type": "string" }
+      }
     },
-    "classification": {
-      "type": "string",
-      "enum": [
-        "Critical",
-        "High pressure",
-        "Watchlist",
-        "Stable"
-      ]
+    "freshness": {
+      "type": "object",
+      "required": ["latest_period", "published_at", "runtime_mode", "data_mode", "quality_flag"],
+      "properties": {
+        "latest_period": { "type": "string" },
+        "published_at": { "type": "string" },
+        "runtime_mode": { "type": "string" },
+        "data_mode": { "type": "string" },
+        "quality_flag": { "type": "string" }
+      }
     },
-    "dominant_driver": {
-      "type": "string"
-    },
-    "explanation_summary": {
-      "type": "string"
-    },
-    "rent_growth": {
-      "type": "number"
-    },
-    "population_growth": {
-      "type": "number"
-    },
-    "housing_completions": {
-      "type": "number"
-    }
+    "quality_flag": { "type": "string" },
+    "data_mode": { "type": "string" }
   },
   "additionalProperties": true
 }

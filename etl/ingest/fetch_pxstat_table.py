@@ -1,6 +1,6 @@
 import argparse
-from datetime import datetime, timezone
 import os
+from datetime import datetime, timezone
 
 import requests
 from azure.identity import DefaultAzureCredential

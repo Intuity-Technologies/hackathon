@@ -1,0 +1,146 @@
+{
+  "generated_at": "2026-04-13T02:26:20+00:00",
+  "latest_period": "2025Q3",
+  "published_at": "2026-04-13T02:26:13+00:00",
+  "data_mode": "local",
+  "summary": {
+    "counties_covered": 26,
+    "average_score": 61.35,
+    "critical_count": 3,
+    "high_pressure_count": 14,
+    "watchlist_count": 5,
+    "stable_count": 4
+  },
+  "headline_cards": [
+    {
+      "id": "county_coverage",
+      "label": "County coverage",
+      "value": "26",
+      "detail": "Latest scored quarter: 2025Q3"
+    },
+    {
+      "id": "highest_pressure",
+      "label": "Highest pressure county",
+      "value": "Mayo",
+      "detail": "83.84/100 (Critical)"
+    },
+    {
+      "id": "highest_sale_price",
+      "label": "Highest median sale price",
+      "value": "Dublin",
+      "detail": "EUR 499,200"
+    },
+    {
+      "id": "regional_homelessness",
+      "label": "Regional homelessness adults",
+      "value": "11,546",
+      "detail": "Sum across December 2025 regions"
+    },
+    {
+      "id": "overburden",
+      "label": "National overburden",
+      "value": "7.2%",
+      "detail": "Housing cost burden reference"
+    },
+    {
+      "id": "pbsa_pipeline",
+      "label": "Latest PBSA pipeline",
+      "value": "311 beds",
+      "detail": "2025Q3"
+    }
+  ],
+  "featured_counties": [
+    {
+      "area_name": "Mayo",
+      "area_level": "county",
+      "geography_level": "county",
+      "coverage_scope": "County",
+      "time_period": "2025Q3",
+      "classification": "Critical",
+      "dominant_driver": "Affordability",
+      "overall_housing_pressure_score": 83.84,
+      "score_rank_in_period": 1,
+      "score_percentile_in_period": 100.0,
+      "score_qoq_change": 4.04,
+      "rent_growth": 12.54,
+      "population_growth": 2.02,
+      "housing_completions": 555.93,
+      "published_at": "2026-04-13T02:26:13+00:00",
+      "quality_flag": "verified-composite",
+      "data_mode": "local",
+      "median_sale_price": 245000.0,
+      "median_sale_price_display": "EUR 245,000"
+    },
+    {
+      "area_name": "Tipperary",
+      "area_level": "county",
+      "geography_level": "county",
+      "coverage_scope": "County",
+      "time_period": "2025Q3",
+      "classification": "Critical",
+      "dominant_driver": "Supply gap",
+      "overall_housing_pressure_score": 83.55,
+      "score_rank_in_period": 2,
+      "score_percentile_in_period": 96.15,
+      "score_qoq_change": 0.55,
+      "rent_growth": 11.97,
+      "population_growth": 1.55,
+      "housing_completions": 369.66,
+      "published_at": "2026-04-13T02:26:13+00:00",
+      "quality_flag": "verified-composite",
+      "data_mode": "local",
+      "median_sale_price": 290000.0,
+      "median_sale_price_display": "EUR 290,000"
+    },
+    {
+      "area_name": "Limerick",
+      "area_level": "county",
+      "geography_level": "county",
+      "coverage_scope": "County",
+      "time_period": "2025Q3",
+      "classification": "Critical",
+      "dominant_driver": "Affordability",
+      "overall_housing_pressure_score": 83.44,
+      "score_rank_in_period": 3,
+      "score_percentile_in_period": 92.31,
+      "score_qoq_change": 8.74,
+      "rent_growth": 13.61,
+      "population_growth": 1.38,
+      "housing_completions": 560.24,
+      "published_at": "2026-04-13T02:26:13+00:00",
+      "quality_flag": "verified-composite",
+      "data_mode": "local",
+      "median_sale_price": 300000.0,
+      "median_sale_price_display": "EUR 300,000"
+    },
+    {
+      "area_name": "Carlow",
+      "area_level": "county",
+      "geography_level": "county",
+      "coverage_scope": "County",
+      "time_period": "2025Q3",
+      "classification": "High pressure",
+      "dominant_driver": "Affordability",
+      "overall_housing_pressure_score": 79.5,
+      "score_rank_in_period": 4,
+      "score_percentile_in_period": 88.46,
+      "score_qoq_change": 12.3,
+      "rent_growth": 12.42,
+      "population_growth": 2.18,
+      "housing_completions": 717.82,
+      "published_at": "2026-04-13T02:26:13+00:00",
+      "quality_flag": "verified-composite",
+      "data_mode": "local",
+      "median_sale_price": 251000.0,
+      "median_sale_price_display": "EUR 251,000"
+    }
+  ],
+  "freshness": {
+    "latest_period": "2025Q3",
+    "published_at": "2026-04-13T02:26:13+00:00",
+    "runtime_mode": "local-first",
+    "data_mode": "local",
+    "quality_flag": "verified-demo-artifacts"
+  },
+  "ethics_note": "Current-state scores are deterministic. Context signals with regional or national scope are shown as supporting evidence and are not blended into the county score."
+}

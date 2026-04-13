@@ -1,0 +1,83 @@
+{
+  "generated_at": "2026-04-13T02:26:20+00:00",
+  "data_mode": "local",
+  "sources": [
+    {
+      "id": "housing_pressure_composite",
+      "label": "Composite county housing pressure score",
+      "source_name": "Signals parquet",
+      "source_period": "2025Q3",
+      "geography_level": "county",
+      "coverage_scope": "County",
+      "quality_flag": "verified-composite",
+      "path": "data\\signals\\housing_pressure\\area_level=county\\part-000.parquet",
+      "notes": "Deterministic score using population growth, rent pressure, and housing completions."
+    },
+    {
+      "id": "median_sale_price",
+      "label": "County median sale price",
+      "source_name": "Median sale price by county",
+      "source_period": "2025-02",
+      "geography_level": "county",
+      "coverage_scope": "County",
+      "quality_flag": "verified-context",
+      "path": "data\\Median sale price by county, Feb 2025.csv",
+      "notes": "Affordable housing context signal, not blended into the composite score."
+    },
+    {
+      "id": "regional_homelessness",
+      "label": "Regional homelessness adults",
+      "source_name": "Homelessness report December 2025",
+      "source_period": "2025-12",
+      "geography_level": "region",
+      "coverage_scope": "Region",
+      "quality_flag": "verified-context",
+      "path": "data\\homelessness-report-december-2025.csv",
+      "notes": "Displayed with regional scope badges only."
+    },
+    {
+      "id": "housing_overburden",
+      "label": "National housing cost overburden",
+      "source_name": "Curated overburden parquet",
+      "source_period": "2024",
+      "geography_level": "national",
+      "coverage_scope": "National",
+      "quality_flag": "verified-context",
+      "path": "data\\curated\\overburden.parquet",
+      "notes": "National reference signal for affordability stress."
+    },
+    {
+      "id": "pbsa_pipeline",
+      "label": "PBSA pipeline",
+      "source_name": "PBSA 2024",
+      "source_period": "2025Q3",
+      "geography_level": "national",
+      "coverage_scope": "National",
+      "quality_flag": "context-only",
+      "path": "data\\PBSA 2024.csv",
+      "notes": "Useful context for student-demand and urban-planning discussions."
+    },
+    {
+      "id": "new_dwelling_mix",
+      "label": "National dwelling mix",
+      "source_name": "NDC Q4 2024",
+      "source_period": "2025Q3",
+      "geography_level": "national",
+      "coverage_scope": "National",
+      "quality_flag": "verified-context",
+      "path": "data\\NDC Q4 2024.csv",
+      "notes": "Used as a supporting supply mix indicator."
+    },
+    {
+      "id": "esb_connections",
+      "label": "ESB annual connections",
+      "source_name": "ESB Total Annual Connections",
+      "source_period": "2021",
+      "geography_level": "national",
+      "coverage_scope": "National",
+      "quality_flag": "context-only",
+      "path": "data\\ESB Total Annual Connections.csv",
+      "notes": "Long-run supply and infrastructure context."
+    }
+  ]
+}

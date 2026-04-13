@@ -1,4 +1,4 @@
-Contracts for retrieval-first payloads used by the orchestrator.
+Contracts for retrieval-first housing payloads.
 
-- `prediction.schema.json`: legacy model prediction artifact contract.
-- `housing_signal_response.schema.json`: county-level artifact from the API/signal store.
+- `housing_signal_response.schema.json`: current-state county signal response with trend, provenance, freshness, context signals, scope, and quality metadata.
+- `prediction.schema.json`: future forecast contract only. This is reserved for model-backed forward-looking outputs and is intentionally separate from current-state evidence.

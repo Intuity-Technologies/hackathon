@@ -1,116 +1,81 @@
-# itag AI Challenge 2025 - Housing Crisis Info Retrieval
+# Affordable Housing Signals Prototype
 
-Unified repository that merges:
-- `hackathon-test`: ETL pipeline, Azure Functions API, infrastructure workflows.
-- `hackathon-main`: Flask frontend and retrieval-first LLM orchestration.
+Review-ready prototype for the itag AI Challenge housing problem area, focused on affordable housing, smart housing context, and urban-planning evidence.
+
+## What This Prototype Does
+
+- Scores county-level housing pressure deterministically from population growth, rent pressure, and housing completions.
+- Surfaces county median sale price plus clearly labeled regional and national context signals for affordability and housing-system pressure.
+- Serves one judged experience through Flask: dashboard, county drilldown, compare flow, and guided chat.
+- Keeps Azure Functions, App Service, Bicep, and optional Azure ML deployment paths intact.
 
 ## Architecture
 
-- `etl/`: Ingest, normalize, and score housing pressure indicators.
-- `api/`: Azure Functions endpoints serving latest county/national signals.
-- `service/`: LLM intent extraction + deterministic retrieval routing.
-- `web.py` + `templates/`: Flask chat frontend.
-- `model/`: baseline training and Azure ML endpoint deployment assets.
-- `output/jupyter-notebook/`: Google Colab demo templates for reviewers.
-- `.github/`: CI, data contract checks, infra/model deploy workflows.
+- `etl/transform/`: normalizers, signal builder, and local demo artifact generator.
+- `etl/common/storage.py`: local/ADLS storage abstraction for pipeline steps.
+- `service/housing_data.py`: shared demo artifact layer used by Flask and Azure Functions.
+- `api/function_app.py`: health, overview, area, compare, trends, sources, and model feature endpoints.
+- `web.py` + `templates/index.html`: dashboard-plus-chat prototype.
+- `contracts/`: current-state signal and future forecast contracts.
 
-## Retrieval-First Guardrail
-
-Numeric topics are served from hard data only.
-- `service/prediction_store.py` fetches from `api/area/{name}`.
-- If API is unavailable locally, it can use `data/signals/housing_pressure/latest.json`.
-- LLM fallback is only for qualitative explanations.
-
-## Quick Start (Local)
-
-1. Create a virtual environment and install dependencies:
+## Local Quick Start
 
 ```powershell
-python -m venv .venv
+py -3.11 -m venv .venv
 .venv\Scripts\Activate.ps1
-pip install -r requirements.txt -r etl/requirements.txt -r api/requirements.txt
-```
-
-2. Copy `.env.example` to `.env` and populate Azure credentials.
-
-3. Run Flask web app:
-
-```powershell
+pip install -r requirements.txt -r requirements-dev.txt -r etl/requirements.txt -r api/requirements.txt
+$env:PYTHONPATH="."
+python etl\transform\build_demo_artifacts.py
 python web.py
 ```
 
-4. Run ETL pipeline (requires ADLS access):
+The app works locally without Azure credentials by reading checked-in signals and demo artifacts.
+
+## ETL Modes
+
+- Local-first mode: `PIPELINE_DATA_MODE=local` reads and writes under `data/`.
+- ADLS mode: `PIPELINE_DATA_MODE=adls` uses Azure storage settings and preserves the cloud refresh/deploy path.
+
+Typical local validation commands:
 
 ```powershell
 $env:PYTHONPATH="."
-python etl/transform/normalize_population.py
-python etl/transform/normalize_rents.py
-python etl/transform/normalize_planning.py
-python etl/transform/build_signals.py
+python -m compileall api etl service model web.py
+ruff check .
+pytest
+python etl\transform\build_demo_artifacts.py
 ```
 
-Optional ingestion utilities for official external sources:
-
-```powershell
-python etl/ingest/fetch_world_bank_indicator.py FP.CPI.TOTL.ZG --country IE
-python etl/ingest/fetch_central_bank_dataset.py --dataset-id retail_rates --url "https://example.centralbank.ie/data.csv"
-```
-
-5. Start Azure Functions API from `api/`:
-
-```powershell
-func start
-```
-
-## API Routes
+## API Surface
 
 - `GET /api/health`
 - `GET /api/areas`
+- `GET /api/overview`
 - `GET /api/area/{name}`
+- `GET /api/compare?areas=Cork;Galway`
+- `GET /api/trends/{name}`
+- `GET /api/sources`
 - `GET /api/model/schema`
 - `GET /api/model/features`
 
-## Infra And Deployment Assets
+## Guardrails
 
-- Bicep templates: `.github/infra/main.bicep` + `.github/infra/modules/*`
-- Infra docs: `.github/infra/README.md`
-- Infra workflow: `.github/workflows/deploy-infra.yml`
-- Static Web App workflow: `.github/workflows/deploy-static-web.yml`
-- Model deploy workflow: `.github/workflows/deploy-model-azureml.yml`
+- County scores are deterministic and retrieval-first.
+- Regional and national signals are shown as context only and are not blended into the county composite score.
+- The dashboard and assistant expose freshness, scope, provenance, and quality metadata.
+- Future predictions remain a separate contract from current-state insights.
 
-## CI/CD Coverage
+## Challenge Alignment
 
-- Azure Functions API: `.github/workflows/deploy-api.yml` (deploy + post-deploy `/api/health` smoke test)
-- Flask frontend on App Service: `.github/workflows/deploy-web.yml` (deploy + post-deploy `/` smoke test)
-- Azure Static Web App (optional landing page): `.github/workflows/deploy-static-web.yml` from `static-web/`
-- ETL refresh with latest CSO pulls: `.github/workflows/refresh-data.yml`
-- Versioned Azure ML model release with optional Bicep + data refresh: `.github/workflows/deploy-model-azureml.yml`
+- Problem definition: county housing pressure, affordability, and supply delivery are framed for practical housing-agency decision support.
+- Innovation: combines a guided prototype UI with a transparent retrieval-first evidence layer.
+- Technical depth: repo includes ETL, API, frontend, IaC, CI, and model assets.
+- Ethical compliance: demo explicitly labels scope, limitations, and non-comparable contextual signals.
+- Presentation quality: reviewer guide and prebuilt local artifacts support a stable 5-minute walkthrough.
 
-Required GitHub secrets for these workflows include:
-- `AZURE_CREDENTIALS`
-- `AZURE_STORAGE_ACCOUNT`, `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`
-- `AZURE_FUNCTIONAPP_NAME`, `AZURE_FUNCTIONAPP_PUBLISH_PROFILE`
-- `AZURE_WEBAPP_NAME`, `AZURE_WEBAPP_PUBLISH_PROFILE`
-- `AZURE_STATIC_WEB_APPS_API_TOKEN` (only if Static Web App deployment is enabled)
+## More Reading
 
-## Model Deployment Assets
-
-- Baseline trainer: `model/training/train_baseline.py`
-- Azure ML score entrypoint: `model/azureml/score.py`
-- Azure ML endpoint/deployment specs: `model/azureml/endpoint.yml`, `model/azureml/deployment.yml`
-- Model docs: `model/README.md`
-
-## Google Colab Templates
-
-- `output/jupyter-notebook/colab-template-01-data-ingestion.ipynb`
-- `output/jupyter-notebook/colab-template-02-signal-pipeline.ipynb`
-- `output/jupyter-notebook/colab-template-03-retrieval-demo.ipynb`
-- Reviewer walkthrough: `docs/REVIEWER_DEMO_GUIDE.md`
-
-## Useful Validation Commands
-
-```powershell
-python -m compileall api etl service web.py
-python etl/tests/check_signals_contract.py --min-periods 4 --min-areas 3
-az bicep build --file .github/infra/main.bicep
-```
+- `docs/REVIEWER_DEMO_GUIDE.md`
+- `docs/ETHICS_AND_LIMITATIONS.md`
+- `.github/infra/README.md`
+- `model/README.md`

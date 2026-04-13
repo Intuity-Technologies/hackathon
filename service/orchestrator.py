@@ -1,40 +1,33 @@
-from service.prediction_store import lookup_prediction
-from service.render import render_prediction
-from service.llm_client import call_llm
+from __future__ import annotations
+
+from service.housing_data import compare_areas, get_area_detail, get_leaderboard, get_overview
 from service.intent_extractor import extract_intent
+from service.llm_client import call_llm
+from service.render import render_area_detail, render_compare, render_overview
 
 
-def answer(question: str):
-    # 1) Extract structured intent using LLM (JSON only)
+def answer(question: str) -> str:
     intent = extract_intent(question)
-
-    city = intent.get("city")
+    areas = intent.get("areas") or []
     topic = intent.get("topic")
-    horizon = intent.get("horizon_months")
+    intent_name = intent.get("intent")
 
-    # 2) Map topic -> retrieval artifact type.
-    prediction_type_map = {
-        "price": "housing_pressure",
-        "rent": "rent_pressure",
-        "homelessness": "homelessness",
-        "population_density": "population_density",
-    }
-    prediction_type = prediction_type_map.get(topic)
+    if intent_name == "compare" and len(areas) >= 2:
+        try:
+            comparison = compare_areas(areas)
+        except ValueError:
+            comparison = None
+        if comparison:
+            return render_compare(comparison)
 
-    # 3) Deterministic lookup from API-backed prediction store.
-    prediction = lookup_prediction(city, prediction_type, horizon)
+    if areas:
+        area = get_area_detail(areas[0])
+        if area:
+            return render_area_detail(area, topic)
 
-    if prediction:
-        # Hard guarantee: if retrieval exists, return deterministic text.
-        return render_prediction(prediction)
+    if intent_name == "overview" or topic == "housing_pressure" or not areas:
+        return render_overview(get_overview(), get_leaderboard())
 
-    if topic in {"price", "rent"}:
-        return (
-            "I could not find a verified numeric artifact for that query. "
-            "Try asking for a county with available data (for example: Mayo, Cork, Dublin)."
-        )
-
-    # LLM fallback only for qualitative answers when no artifact exists.
     return call_llm(question)
 
 

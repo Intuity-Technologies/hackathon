@@ -2,44 +2,41 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Irish Housing Signals Assistant</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Affordable Housing Signals Prototype</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-
 <style>
 :root {
-  --bg-deep: #0c1714;
-  --bg-forest: #17362f;
-  --bg-card: rgba(16, 42, 35, 0.78);
-  --bg-card-strong: rgba(12, 32, 27, 0.94);
-  --line: rgba(169, 226, 197, 0.2);
-  --line-strong: rgba(169, 226, 197, 0.42);
-  --text-main: #e7fff2;
-  --text-muted: #b7dfca;
-  --accent: #f3a74f;
-  --accent-2: #3ac899;
-  --user-bubble: #1f5e4f;
-  --assistant-bubble: #17392f;
-  --error: #ff8f8f;
+  color-scheme: light;
+  --bg: #f3efe6;
+  --paper: rgba(255, 251, 244, 0.88);
+  --paper-strong: rgba(255, 248, 238, 0.98);
+  --panel-line: rgba(42, 62, 52, 0.14);
+  --ink: #17221c;
+  --muted: #58695f;
+  --forest: #204237;
+  --moss: #4d7a59;
+  --sand: #caa26b;
+  --clay: #a44f2f;
+  --soft: #eef4ec;
+  --shadow: 0 28px 70px rgba(51, 54, 44, 0.14);
 }
 
 * {
   box-sizing: border-box;
 }
 
-html,
 body {
-  width: 100%;
-  height: 100%;
   margin: 0;
-  font-family: "Space Grotesk", system-ui, sans-serif;
-  color: var(--text-main);
+  min-height: 100vh;
+  font-family: "Space Grotesk", sans-serif;
+  color: var(--ink);
   background:
-    radial-gradient(circle at 12% 8%, rgba(243, 167, 79, 0.28), transparent 36%),
-    radial-gradient(circle at 84% 14%, rgba(58, 200, 153, 0.26), transparent 38%),
-    linear-gradient(150deg, var(--bg-deep), var(--bg-forest));
+    radial-gradient(circle at top left, rgba(77, 122, 89, 0.22), transparent 28%),
+    radial-gradient(circle at 88% 12%, rgba(202, 162, 107, 0.25), transparent 30%),
+    linear-gradient(180deg, #ede6d8 0%, var(--bg) 36%, #f8f4ed 100%);
 }
 
 body::before {
@@ -47,489 +44,792 @@ body::before {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  opacity: 0.2;
+  opacity: 0.18;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-  background-size: 24px 24px;
+    linear-gradient(rgba(23, 34, 28, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(23, 34, 28, 0.04) 1px, transparent 1px);
+  background-size: 28px 28px;
 }
 
 .page {
   position: relative;
   z-index: 1;
-  max-width: 1240px;
+  width: min(1400px, 94vw);
   margin: 0 auto;
-  padding: 24px;
-  min-height: 100%;
-  display: flex;
-  align-items: center;
+  padding: 28px 0 42px;
 }
 
-.layout {
-  width: 100%;
-  min-height: 88vh;
-  display: grid;
-  grid-template-columns: 360px 1fr;
-  gap: 16px;
-  animation: pageIn 0.6s ease;
-}
-
+.hero,
 .panel {
-  border: 1px solid var(--line);
-  border-radius: 20px;
-  backdrop-filter: blur(10px);
-  background: var(--bg-card);
-  box-shadow: 0 22px 45px rgba(0, 0, 0, 0.24);
+  border: 1px solid var(--panel-line);
+  border-radius: 24px;
+  background: var(--paper);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--shadow);
 }
 
-.aside {
-  padding: 22px;
+.hero {
+  padding: 26px;
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 20px;
+  margin-bottom: 18px;
+}
+
+.hero h1,
+.panel h2,
+.panel h3 {
+  margin: 0;
+}
+
+.eyebrow,
+.meta,
+.source-chip,
+.badge,
+.status {
+  font-family: "IBM Plex Mono", monospace;
+}
+
+.eyebrow {
+  display: inline-flex;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(32, 66, 55, 0.08);
+  color: var(--forest);
+  font-size: 0.78rem;
+}
+
+.hero-copy p,
+.panel p,
+.context-item small,
+.table-cell small,
+.metric-note,
+.source-note,
+.status {
+  color: var(--muted);
+}
+
+.hero-copy p {
+  margin: 12px 0 0;
+  line-height: 1.55;
+  max-width: 62ch;
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.stat-card,
+.context-item,
+.source-item,
+.compare-summary,
+.featured-header,
+.score-card {
+  border: 1px solid var(--panel-line);
+  border-radius: 18px;
+  background: var(--paper-strong);
+}
+
+.stat-card {
+  padding: 14px 16px;
+}
+
+.stat-card strong,
+.metric-value,
+.status strong {
+  display: block;
+  font-size: 1.4rem;
+  line-height: 1.05;
+}
+
+.status-strip {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.status {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(77, 122, 89, 0.08);
+  font-size: 0.82rem;
+}
+
+.main-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1.2fr;
   gap: 18px;
 }
 
-.brand {
+.stack {
+  display: grid;
+  gap: 18px;
+}
+
+.panel {
+  padding: 22px;
+}
+
+.panel-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
-.brand h1 {
-  margin: 0;
-  line-height: 1.05;
-  font-size: 1.56rem;
-  letter-spacing: -0.02em;
-}
-
-.badge {
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 0.72rem;
-  color: #0c1714;
-  background: linear-gradient(120deg, var(--accent), #ffd8a7);
-  padding: 5px 10px;
-  border-radius: 999px;
-  font-weight: 500;
-}
-
-.kicker {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 0.95rem;
-  line-height: 1.45;
-}
-
-.stats {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.stat {
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 11px 12px;
-  background: rgba(7, 27, 22, 0.52);
-}
-
-.stat .label {
-  display: block;
-  color: var(--text-muted);
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: 4px;
-}
-
-.stat .value {
-  font-size: 1.12rem;
-  font-weight: 600;
-}
-
-.quick-prompts h2,
-.sources h2 {
-  margin: 0 0 9px 0;
-  font-size: 0.95rem;
-}
-
-.prompt-list {
+.table {
   display: grid;
   gap: 8px;
 }
 
-.prompt {
-  border: 1px solid var(--line);
-  background: rgba(10, 31, 25, 0.62);
-  color: var(--text-main);
-  border-radius: 12px;
-  font-family: "Space Grotesk", sans-serif;
-  font-size: 0.88rem;
-  text-align: left;
-  padding: 10px 12px;
-  cursor: pointer;
-  transition: 0.2s ease;
-}
-
-.prompt:hover {
-  border-color: var(--line-strong);
-  transform: translateY(-1px);
-}
-
-.sources p {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 0.86rem;
-  line-height: 1.45;
-}
-
-.main {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.topbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--line);
-  background: rgba(8, 24, 20, 0.54);
-}
-
-.topbar h2 {
-  margin: 0;
-  font-size: 1.05rem;
-}
-
-.meta {
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 0.76rem;
-  color: var(--text-muted);
-}
-
-.clear-btn {
-  border: 1px solid var(--line-strong);
-  background: transparent;
-  color: var(--text-main);
-  border-radius: 10px;
-  padding: 8px 12px;
-  cursor: pointer;
-  font-family: "Space Grotesk", sans-serif;
-}
-
-.chat {
-  flex: 1;
-  overflow-y: auto;
-  padding: 18px;
-  display: flex;
-  flex-direction: column;
+.table-row {
+  display: grid;
+  grid-template-columns: 56px 1.3fr 0.8fr 0.8fr;
   gap: 10px;
-  background: var(--bg-card-strong);
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.52);
 }
 
-.row {
+.rank-pill,
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: rgba(32, 66, 55, 0.1);
+  color: var(--forest);
+  font-size: 0.75rem;
+}
+
+.badge {
+  background: rgba(202, 162, 107, 0.18);
+  color: #7c5015;
+}
+
+.score-shell {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(32, 66, 55, 0.08);
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.score-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--moss), var(--sand));
+}
+
+.featured-controls,
+.compare-controls,
+.chat-controls {
   display: flex;
-  opacity: 0;
-  transform: translateY(6px);
-  animation: bubbleIn 0.25s ease forwards;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
-.row.user {
+select,
+button,
+textarea {
+  font: inherit;
+}
+
+select,
+textarea {
+  width: 100%;
+  border: 1px solid rgba(32, 66, 55, 0.18);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--ink);
+}
+
+select {
+  padding: 11px 12px;
+}
+
+button {
+  border: none;
+  border-radius: 14px;
+  padding: 12px 16px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.primary-btn {
+  background: linear-gradient(135deg, var(--forest), var(--moss));
+  color: white;
+}
+
+.ghost-btn {
+  background: rgba(32, 66, 55, 0.08);
+  color: var(--forest);
+}
+
+.featured-layout {
+  display: grid;
+  gap: 16px;
+}
+
+.featured-header {
+  padding: 16px;
+}
+
+.featured-header h3 {
+  margin-bottom: 4px;
+}
+
+.featured-metrics,
+.context-grid,
+.source-list {
+  display: grid;
+  gap: 12px;
+}
+
+.featured-metrics {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.score-card {
+  padding: 14px;
+}
+
+.sparkline-shell {
+  border: 1px solid var(--panel-line);
+  border-radius: 18px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.56);
+}
+
+.sparkline svg {
+  width: 100%;
+  height: 180px;
+  display: block;
+}
+
+.sparkline text {
+  fill: var(--muted);
+  font-size: 11px;
+  font-family: "IBM Plex Mono", monospace;
+}
+
+.context-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.context-item,
+.source-item {
+  padding: 14px;
+}
+
+.compare-layout,
+.chat-layout {
+  display: grid;
+  gap: 16px;
+}
+
+.compare-summary {
+  padding: 16px;
+  min-height: 106px;
+}
+
+.compare-metrics {
+  display: grid;
+  gap: 10px;
+}
+
+.source-chip {
+  display: inline-flex;
+  margin-top: 8px;
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: rgba(164, 79, 47, 0.1);
+  color: var(--clay);
+  font-size: 0.75rem;
+}
+
+.chat-shell {
+  border: 1px solid var(--panel-line);
+  border-radius: 20px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.chat-feed {
+  min-height: 280px;
+  max-height: 420px;
+  overflow-y: auto;
+  padding: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.bubble-row {
+  display: flex;
+}
+
+.bubble-row.user {
   justify-content: flex-end;
 }
 
-.row.assistant {
-  justify-content: flex-start;
-}
-
 .bubble {
-  max-width: min(80%, 760px);
-  border-radius: 16px;
-  border: 1px solid var(--line);
-  padding: 11px 13px;
+  max-width: min(80%, 720px);
+  padding: 12px 14px;
+  border-radius: 18px;
+  line-height: 1.5;
   white-space: pre-wrap;
-  line-height: 1.46;
+  border: 1px solid rgba(32, 66, 55, 0.12);
 }
 
-.row.user .bubble {
-  background: linear-gradient(165deg, rgba(58, 200, 153, 0.35), var(--user-bubble));
+.bubble-row.user .bubble {
+  background: rgba(32, 66, 55, 0.12);
 }
 
-.row.assistant .bubble {
-  background: linear-gradient(165deg, rgba(243, 167, 79, 0.12), var(--assistant-bubble));
+.bubble-row.assistant .bubble {
+  background: rgba(255, 248, 238, 0.96);
 }
 
-.row.error .bubble {
-  border-color: rgba(255, 143, 143, 0.7);
-  color: var(--error);
+.bubble-row.error .bubble {
+  background: rgba(164, 79, 47, 0.08);
+  border-color: rgba(164, 79, 47, 0.22);
 }
 
 .composer {
-  border-top: 1px solid var(--line);
-  background: rgba(10, 29, 24, 0.94);
+  border-top: 1px solid var(--panel-line);
   padding: 12px;
-  display: flex;
+  display: grid;
   gap: 10px;
 }
 
 textarea {
-  flex: 1;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 11px 12px;
-  min-height: 48px;
-  max-height: 150px;
+  min-height: 92px;
+  padding: 12px 14px;
   resize: vertical;
-  font-family: "Space Grotesk", sans-serif;
-  background: rgba(7, 22, 18, 0.8);
-  color: var(--text-main);
 }
 
-textarea:focus {
-  outline: none;
-  border-color: var(--line-strong);
-  box-shadow: 0 0 0 3px rgba(58, 200, 153, 0.15);
+.helper-note {
+  font-size: 0.85rem;
+  color: var(--muted);
 }
 
-.send-btn {
-  min-width: 110px;
-  border: none;
-  border-radius: 14px;
-  font-family: "Space Grotesk", sans-serif;
-  font-weight: 600;
-  color: #142920;
-  background: linear-gradient(135deg, var(--accent), #ffd07d);
-  cursor: pointer;
+.loading {
+  color: var(--muted);
 }
 
-.send-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.chat::-webkit-scrollbar {
-  width: 8px;
-}
-
-.chat::-webkit-scrollbar-thumb {
-  background: rgba(183, 223, 202, 0.35);
-  border-radius: 999px;
-}
-
-.chat {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(183, 223, 202, 0.35) transparent;
-}
-
-@keyframes pageIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes bubbleIn {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@media (max-width: 980px) {
-  .page {
-    padding: 14px;
-  }
-
-  .layout {
+@media (max-width: 1120px) {
+  .hero,
+  .main-grid {
     grid-template-columns: 1fr;
-    min-height: auto;
-    gap: 12px;
   }
 
-  .aside {
-    order: 2;
+  .featured-metrics,
+  .context-grid,
+  .hero-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .page {
+    width: min(94vw, 100%);
+    padding-top: 16px;
   }
 
-  .main {
-    order: 1;
-    min-height: 66vh;
+  .featured-metrics,
+  .context-grid,
+  .hero-grid,
+  .table-row {
+    grid-template-columns: 1fr;
+  }
+
+  .panel,
+  .hero {
+    padding: 18px;
+  }
+
+  .bubble {
+    max-width: 100%;
   }
 }
 </style>
 </head>
-
 <body>
 <div class="page">
-  <div class="layout">
-    <aside class="panel aside">
-      <div class="brand">
-        <h1>Irish Housing Signals</h1>
-        <span class="badge">retrieval-first</span>
-      </div>
-      <p class="kicker">
-        Ask county-level housing pressure questions. Numeric answers come from verified signal artifacts, never generated estimates.
+  <section class="hero">
+    <div class="hero-copy">
+      <span class="eyebrow">Affordable housing prototype</span>
+      <h1>Human intelligence for county-level housing decisions</h1>
+      <p>
+        This prototype combines deterministic county housing-pressure scores with clearly labeled county,
+        regional, and national context signals. The dashboard highlights risk, supply pressure, and affordability
+        evidence without inventing unsupported numbers.
       </p>
-
-      <div class="stats">
-        <div class="stat">
-          <span class="label">Coverage</span>
-          <span class="value">26 counties</span>
-        </div>
-        <div class="stat">
-          <span class="label">Sources</span>
-          <span class="value">CSO + CBI + WB</span>
-        </div>
+      <div class="status-strip">
+        <div class="status"><strong>{{ overview.latest_period }}</strong> Latest scored period</div>
+        <div class="status"><strong>{{ overview.freshness.data_mode }}</strong> Runtime mode</div>
+        <div class="status"><strong>{{ overview.summary.counties_covered }}</strong> Counties covered</div>
       </div>
-
-      <section class="quick-prompts">
-        <h2>Quick prompts</h2>
-        <div class="prompt-list">
-          <button type="button" class="prompt" data-prompt="What is the latest housing pressure classification for Mayo?">Latest pressure for Mayo</button>
-          <button type="button" class="prompt" data-prompt="How does rent pressure look in Cork this quarter?">Rent pressure in Cork</button>
-          <button type="button" class="prompt" data-prompt="Explain homelessness pressure in Dublin in plain language.">Homelessness pressure in Dublin</button>
-          <button type="button" class="prompt" data-prompt="Compare population pressure proxy for Galway and Limerick.">Population proxy Galway vs Limerick</button>
-        </div>
-      </section>
-
-      <section class="sources">
-        <h2>Signal chain</h2>
-        <p>ETL -> ADLS Gen2 -> Azure Functions API -> Retrieval orchestrator -> Flask UI</p>
-      </section>
-    </aside>
-
-    <main class="panel main">
-      <div class="topbar">
-        <div>
-          <h2>Assistant Console</h2>
-          <div class="meta">No numerical hallucinations policy active</div>
-        </div>
-        <button id="clear-btn" class="clear-btn" type="button">Clear chat</button>
+    </div>
+    <div class="hero-grid">
+      {% for card in overview.headline_cards %}
+      <div class="stat-card">
+        <span class="meta">{{ card.label }}</span>
+        <strong>{{ card.value }}</strong>
+        <div class="metric-note">{{ card.detail }}</div>
       </div>
+      {% endfor %}
+    </div>
+  </section>
 
-      <div class="chat" id="chat">
-        {% for m in messages %}
-          <div class="row {{ m.role }}">
-            <div class="bubble">{{ m.content }}</div>
+  <div class="main-grid">
+    <div class="stack">
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>County Leaderboard</h2>
+            <p>Ranked by latest composite housing-pressure score.</p>
           </div>
-        {% endfor %}
-      </div>
+          <span class="badge">retrieval-first</span>
+        </div>
+        <div class="table">
+          {% for row in leaderboard.rows[:10] %}
+          <div class="table-row">
+            <div class="rank-pill">#{{ row.score_rank_in_period }}</div>
+            <div class="table-cell">
+              <strong>{{ row.area_name }}</strong>
+              <small>{{ row.classification }} | {{ row.dominant_driver }}</small>
+              <div class="score-shell"><div class="score-fill" style="width: {{ row.overall_housing_pressure_score }}%"></div></div>
+            </div>
+            <div class="table-cell">
+              <strong>{{ "%.1f"|format(row.overall_housing_pressure_score) }}</strong>
+              <small>Score / 100</small>
+            </div>
+            <div class="table-cell">
+              <strong>{{ row.median_sale_price_display or "Unavailable" }}</strong>
+              <small>Median sale price</small>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
 
-      <form class="composer" id="chat-form">
-        <textarea id="chat-input" name="question" rows="2" placeholder="Ask about Irish housing pressure by county..." autofocus></textarea>
-        <button id="send-btn" class="send-btn" type="submit">Send</button>
-      </form>
-    </main>
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Evidence And Ethics</h2>
+            <p>{{ overview.ethics_note }}</p>
+          </div>
+        </div>
+        <div class="source-list">
+          {% for source in sources_manifest.sources %}
+          <div class="source-item">
+            <h3>{{ source.label }}</h3>
+            <div class="source-note">{{ source.notes }}</div>
+            <span class="source-chip">{{ source.coverage_scope }} | {{ source.source_period }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+    </div>
+
+    <div class="stack">
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>County Drilldown</h2>
+            <p>Review one county at a time with score breakdown, trend, and contextual signals.</p>
+          </div>
+          <div class="featured-controls">
+            <select id="area-select" aria-label="Select county">
+              {% for area in available_areas %}
+              <option value="{{ area }}" {% if area == featured_area.area_name %}selected{% endif %}>{{ area }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="featured-layout">
+          <div class="featured-header" id="featured-header"></div>
+          <div class="featured-metrics" id="featured-metrics"></div>
+          <div class="sparkline-shell">
+            <div class="panel-header">
+              <div>
+                <h3>Trend View</h3>
+                <p>Composite score over time for the selected county.</p>
+              </div>
+            </div>
+            <div class="sparkline" id="sparkline"></div>
+          </div>
+          <div class="context-grid" id="context-grid"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Compare Counties</h2>
+            <p>Side-by-side comparison for housing pressure, rent growth, population growth, and supply.</p>
+          </div>
+        </div>
+        <div class="compare-layout">
+          <div class="compare-controls">
+            <select id="compare-a" aria-label="Compare county A">
+              {% for area in available_areas %}
+              <option value="{{ area }}" {% if area == default_compare.areas[0].area_name %}selected{% endif %}>{{ area }}</option>
+              {% endfor %}
+            </select>
+            <select id="compare-b" aria-label="Compare county B">
+              {% for area in available_areas %}
+              <option value="{{ area }}" {% if area == default_compare.areas[1].area_name %}selected{% endif %}>{{ area }}</option>
+              {% endfor %}
+            </select>
+            <button type="button" class="primary-btn" id="compare-btn">Compare</button>
+          </div>
+          <div class="compare-summary" id="compare-summary"></div>
+          <div class="compare-metrics" id="compare-metrics"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Guided Chat</h2>
+            <p>Ask for county explanations, rankings, affordability context, or supply pressure.</p>
+          </div>
+          <button id="clear-btn" class="ghost-btn" type="button">Clear chat</button>
+        </div>
+        <div class="chat-layout">
+          <div class="chat-shell">
+            <div class="chat-feed" id="chat">
+              {% for m in messages %}
+              <div class="bubble-row {{ m.role }}">
+                <div class="bubble">{{ m.content }}</div>
+              </div>
+              {% endfor %}
+            </div>
+            <form class="composer" id="chat-form">
+              <textarea id="chat-input" name="question" placeholder="Try: Which counties are under the highest affordable housing pressure right now?"></textarea>
+              <div class="chat-controls">
+                <button id="send-btn" class="primary-btn" type="submit">Ask assistant</button>
+                <button class="ghost-btn" type="button" data-prompt="Which counties are under the highest housing pressure right now?">Top counties</button>
+                <button class="ghost-btn" type="button" data-prompt="Compare Cork and Galway for affordable housing pressure.">Compare Cork and Galway</button>
+                <button class="ghost-btn" type="button" data-prompt="What affordability context should I mention for Dublin?">Affordability context</button>
+              </div>
+              <div class="helper-note">Numeric answers come from verified artifacts. Regional and national context stays clearly labeled.</div>
+            </form>
+          </div>
+        </div>
+      </section>
+    </div>
   </div>
 </div>
 
 <script>
-(() => {
+const initialArea = {{ featured_area|tojson }};
+const initialCompare = {{ default_compare|tojson }};
+
+function scoreCard(label, value, note) {
+  return `
+    <div class="score-card">
+      <span class="meta">${label}</span>
+      <div class="metric-value">${value}</div>
+      <div class="metric-note">${note}</div>
+    </div>
+  `;
+}
+
+function renderFeaturedArea(area) {
+  const header = document.getElementById("featured-header");
+  const metrics = document.getElementById("featured-metrics");
+  const context = document.getElementById("context-grid");
+
+  header.innerHTML = `
+    <span class="eyebrow">${area.coverage_scope}</span>
+    <h3>${area.area_name}</h3>
+    <p>${area.area_context.explanation_summary}</p>
+  `;
+
+  metrics.innerHTML = [
+    scoreCard("Housing pressure", `${area.overall_housing_pressure_score.toFixed(1)}/100`, `${area.classification} in ${area.time_period}`),
+    scoreCard("Dominant driver", area.dominant_driver, `QoQ change ${area.score_qoq_change === null ? "Unavailable" : area.score_qoq_change.toFixed(1)}`),
+    scoreCard("Median sale price", area.median_sale_price_display || "Unavailable", `Region ${area.area_context.region || "Unavailable"}`),
+  ].join("");
+
+  context.innerHTML = area.context_signals.map((signal) => `
+    <div class="context-item">
+      <span class="meta">${signal.label}</span>
+      <div class="metric-value">${signal.display_value}</div>
+      <small>${signal.coverage_scope} | ${signal.source_period}</small>
+    </div>
+  `).join("");
+
+  renderSparkline(area.trend.series);
+}
+
+function renderSparkline(series) {
+  const shell = document.getElementById("sparkline");
+  if (!series || !series.length) {
+    shell.innerHTML = `<div class="loading">Trend unavailable.</div>`;
+    return;
+  }
+
+  const width = 680;
+  const height = 180;
+  const pad = 20;
+  const values = series.map((row) => row.overall_housing_pressure_score);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = Math.max(max - min, 1);
+  const points = values.map((value, index) => {
+    const x = pad + (index * (width - pad * 2)) / Math.max(series.length - 1, 1);
+    const y = height - pad - ((value - min) / span) * (height - pad * 2);
+    return `${x},${y}`;
+  }).join(" ");
+
+  const labels = series.filter((_, index) => index === 0 || index === series.length - 1).map((row, index) => {
+    const x = index === 0 ? pad : width - pad - 34;
+    return `<text x="${x}" y="${height - 6}">${row.time_period}</text>`;
+  }).join("");
+
+  shell.innerHTML = `
+    <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Housing pressure trend chart">
+      <line x1="${pad}" y1="${height - pad}" x2="${width - pad}" y2="${height - pad}" stroke="rgba(32,66,55,0.18)" />
+      <polyline fill="none" stroke="#204237" stroke-width="4" points="${points}" />
+      ${labels}
+    </svg>
+  `;
+}
+
+function renderCompare(payload) {
+  const summary = document.getElementById("compare-summary");
+  const metrics = document.getElementById("compare-metrics");
+  const [a, b] = payload.areas;
+  summary.innerHTML = `
+    <h3>${a.area_name} vs ${b.area_name}</h3>
+    <p>${payload.latest_period} comparison. ${a.area_name}: ${a.overall_housing_pressure_score.toFixed(1)}/100. ${b.area_name}: ${b.overall_housing_pressure_score.toFixed(1)}/100.</p>
+  `;
+  metrics.innerHTML = payload.metric_summary.map((metric) => `
+    <div class="context-item">
+      <span class="meta">${metric.label}</span>
+      <div class="metric-value">${metric.winner}</div>
+      <small>${metric.higher_is_worse ? "Higher indicates more pressure" : "Higher indicates stronger supply context"}</small>
+    </div>
+  `).join("");
+}
+
+async function fetchJson(url) {
+  const response = await fetch(url);
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(payload.error || "Request failed");
+  }
+  return payload;
+}
+
+async function refreshArea(areaName) {
+  const header = document.getElementById("featured-header");
+  header.innerHTML = `<div class="loading">Loading county detail...</div>`;
+  try {
+    const payload = await fetchJson(`/api/area/${encodeURIComponent(areaName)}`);
+    renderFeaturedArea(payload);
+  } catch (error) {
+    header.innerHTML = `<div class="loading">${error.message}</div>`;
+  }
+}
+
+async function refreshCompare() {
+  const areaA = document.getElementById("compare-a").value;
+  const areaB = document.getElementById("compare-b").value;
+  const summary = document.getElementById("compare-summary");
+  summary.innerHTML = `<div class="loading">Comparing counties...</div>`;
+  try {
+    const payload = await fetchJson(`/api/compare?areas=${encodeURIComponent(`${areaA};${areaB}`)}`);
+    renderCompare(payload);
+  } catch (error) {
+    summary.innerHTML = `<div class="loading">${error.message}</div>`;
+  }
+}
+
+function addBubble(role, text, isError = false) {
   const chat = document.getElementById("chat");
-  const form = document.getElementById("chat-form");
+  const row = document.createElement("div");
+  row.className = `bubble-row ${role}${isError ? " error" : ""}`;
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  bubble.textContent = text;
+  row.appendChild(bubble);
+  chat.appendChild(row);
+  chat.scrollTop = chat.scrollHeight;
+  return row;
+}
+
+document.getElementById("area-select").addEventListener("change", (event) => {
+  refreshArea(event.target.value);
+});
+
+document.getElementById("compare-btn").addEventListener("click", refreshCompare);
+
+document.querySelectorAll("[data-prompt]").forEach((button) => {
+  button.addEventListener("click", () => {
+    document.getElementById("chat-input").value = button.dataset.prompt || "";
+    document.getElementById("chat-input").focus();
+  });
+});
+
+document.getElementById("clear-btn").addEventListener("click", async () => {
+  try {
+    await fetch("/clear", { method: "POST" });
+    document.getElementById("chat").innerHTML = "";
+  } catch (_) {
+    addBubble("assistant", "Could not clear chat right now.", true);
+  }
+});
+
+document.getElementById("chat-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
   const input = document.getElementById("chat-input");
-  const sendBtn = document.getElementById("send-btn");
-  const clearBtn = document.getElementById("clear-btn");
-  const promptButtons = document.querySelectorAll(".prompt");
-
-  function scrollToBottom() {
-    chat.scrollTop = chat.scrollHeight;
+  const sendButton = document.getElementById("send-btn");
+  const question = input.value.trim();
+  if (!question) {
+    return;
   }
 
-  function addBubble(role, text, isError = false) {
-    const row = document.createElement("div");
-    row.className = `row ${role}${isError ? " error" : ""}`;
+  addBubble("user", question);
+  const loadingRow = addBubble("assistant", "Retrieving verified housing evidence...");
+  input.value = "";
+  input.disabled = true;
+  sendButton.disabled = true;
 
-    const bubble = document.createElement("div");
-    bubble.className = "bubble";
-    bubble.textContent = text;
-
-    row.appendChild(bubble);
-    chat.appendChild(row);
-    scrollToBottom();
-    return row;
+  try {
+    const formData = new FormData();
+    formData.append("question", question);
+    const response = await fetch("/api/ask", { method: "POST", body: formData });
+    const payload = await response.json();
+    loadingRow.remove();
+    if (payload.ok) {
+      addBubble("assistant", payload.reply);
+    } else {
+      addBubble("assistant", payload.error || "Unknown error", true);
+    }
+  } catch (_) {
+    loadingRow.remove();
+    addBubble("assistant", "Could not reach the assistant service.", true);
+  } finally {
+    input.disabled = false;
+    sendButton.disabled = false;
+    input.focus();
   }
+});
 
-  function autoGrow() {
-    input.style.height = "auto";
-    input.style.height = `${Math.min(input.scrollHeight, 150)}px`;
-  }
-
-  scrollToBottom();
-  autoGrow();
-
-  promptButtons.forEach((button) => {
-    button.addEventListener("click", () => {
-      input.value = button.dataset.prompt || "";
-      autoGrow();
-      input.focus();
-    });
-  });
-
-  clearBtn.addEventListener("click", async () => {
-    try {
-      await fetch("/clear", { method: "POST" });
-      chat.innerHTML = "";
-    } catch (_) {
-      addBubble("assistant", "Could not clear session right now.", true);
-    }
-  });
-
-  input.addEventListener("input", autoGrow);
-
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      form.requestSubmit();
-    }
-  });
-
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const question = input.value.trim();
-    if (!question) return;
-
-    addBubble("user", question);
-    const thinkingRow = addBubble("assistant", "Retrieving verified data...");
-
-    input.value = "";
-    autoGrow();
-    input.disabled = true;
-    sendBtn.disabled = true;
-
-    try {
-      const fd = new FormData();
-      fd.append("question", question);
-
-      const res = await fetch("/api/ask", { method: "POST", body: fd });
-      const data = await res.json();
-
-      thinkingRow.remove();
-      if (data.ok) {
-        addBubble("assistant", data.reply);
-      } else {
-        addBubble("assistant", `Error: ${data.error || "Unknown error"}`, true);
-      }
-    } catch (_) {
-      thinkingRow.remove();
-      addBubble("assistant", "Error: could not reach the server.", true);
-    } finally {
-      input.disabled = false;
-      sendBtn.disabled = false;
-      input.focus();
-      scrollToBottom();
-    }
-  });
-})();
+renderFeaturedArea(initialArea);
+renderCompare(initialCompare);
 </script>
 </body>
 </html>

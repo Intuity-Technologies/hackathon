@@ -1,47 +1,58 @@
 # Reviewer Demo Guide
 
-This repository is structured to demonstrate end-to-end technical delivery for the itag AI Challenge.
+This prototype is designed for a short judged walkthrough that proves technical depth, transparency, and usability.
 
-## 1) Frontend and Retrieval UX
+## 1. Run The Prototype
 
-- Flask app entrypoint: `web.py`
-- UI template: `templates/index.html`
-- Retrieval-first routing: `service/orchestrator.py`
-
-Run locally:
-
-```bash
-pip install -r requirements.txt
+```powershell
+py -3.11 -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt -r requirements-dev.txt -r etl/requirements.txt -r api/requirements.txt
+$env:PYTHONPATH="."
+python etl\transform\build_demo_artifacts.py
 python web.py
 ```
 
-## 2) ETL and API
+Open `http://127.0.0.1:5000`.
 
-- ETL transforms: `etl/transform/*`
-- Ingestion utilities: `etl/ingest/*`
-- API endpoints: `api/function_app.py`
+## 2. Suggested 5-Minute Demo Flow
 
-Contract check:
+1. Start on the dashboard hero and explain that county housing pressure is deterministic and refreshed from scored artifacts.
+2. Show the leaderboard to highlight which counties are currently under the greatest housing pressure.
+3. Open the county drilldown for `Mayo` or `Dublin` and call out:
+   - composite score and classification
+   - dominant driver
+   - trend line
+   - county, regional, and national context cards with clear scope labels
+4. Use the compare panel for `Cork` vs `Galway` or `Dublin` vs `Mayo`.
+5. Ask the assistant a retrieval-first question such as:
+   - `What is the latest housing pressure classification for Mayo?`
+   - `Compare Cork and Galway for affordable housing pressure.`
+   - `Which counties are under the highest housing pressure right now?`
+6. Close by showing `docs/ETHICS_AND_LIMITATIONS.md` or the evidence panel to explain fairness, transparency, and accountability choices.
 
-```bash
-python etl/tests/check_signals_contract.py --min-periods 4 --min-areas 3
+## 3. What To Emphasize
+
+- The county score is deterministic and explainable.
+- Context signals are separated by scope instead of being mixed into the score without justification.
+- The same artifact layer powers the dashboard, API, and assistant.
+- Local-first demo artifacts make the prototype stable even without live cloud dependencies.
+
+## 4. Supporting Technical Evidence
+
+- ETL and demo artifact build: `etl/transform/`
+- Shared evidence layer: `service/housing_data.py`
+- API surface: `api/function_app.py`
+- UI shell: `templates/index.html`
+- Contracts: `contracts/`
+- CI: `.github/workflows/ci.yml`
+
+## 5. Validation Commands
+
+```powershell
+$env:PYTHONPATH="."
+python -m compileall api etl service model web.py
+ruff check .
+pytest
+python etl\transform\build_demo_artifacts.py
 ```
-
-## 3) Azure Infrastructure as Code
-
-- Main composition: `.github/infra/main.bicep`
-- Modules: `.github/infra/modules/*`
-- CI deployment workflow: `.github/workflows/deploy-infra.yml`
-
-## 4) Model Deployment to Azure ML
-
-- Training script: `model/training/train_baseline.py`
-- Scoring entrypoint: `model/azureml/score.py`
-- Endpoint/deployment specs: `model/azureml/*.yml`
-- Workflow: `.github/workflows/deploy-model-azureml.yml`
-
-## 5) Colab Templates for Walkthrough
-
-- `output/jupyter-notebook/colab-template-01-data-ingestion.ipynb`
-- `output/jupyter-notebook/colab-template-02-signal-pipeline.ipynb`
-- `output/jupyter-notebook/colab-template-03-retrieval-demo.ipynb`

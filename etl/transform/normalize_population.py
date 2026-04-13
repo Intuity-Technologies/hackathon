@@ -1,9 +1,8 @@
-import io
 import os
 
 import pandas as pd
-from azure.identity import DefaultAzureCredential
-from azure.storage.filedatalake import DataLakeServiceClient
+
+from etl.common.storage import StorageBackend, build_storage_backend
 
 AREA_LEVEL = os.getenv("AREA_LEVEL", "county")
 RAW_FS = os.getenv("RAW_FILE_SYSTEM", "raw")
@@ -17,30 +16,17 @@ POPULATION_CURATED_PATH = os.getenv(
     f"population/area_level={AREA_LEVEL}/part-000.parquet",
 )
 
-
-def _get_service_client() -> DataLakeServiceClient:
-    account = os.getenv("AZURE_STORAGE_ACCOUNT", "").strip()
-    if not account:
-        raise ValueError("AZURE_STORAGE_ACCOUNT env var not set")
-    return DataLakeServiceClient(
-        account_url=f"https://{account}.dfs.core.windows.net",
-        credential=DefaultAzureCredential(),
-    )
-
-
-def _download_csv(file_system: str, path: str) -> pd.DataFrame:
-    svc = _get_service_client()
-    fs = svc.get_file_system_client(file_system)
-    file_client = fs.get_file_client(path)
-    data = file_client.download_file().readall()
-    return pd.read_csv(io.BytesIO(data))
+def load_population_source(
+    storage: StorageBackend | None = None,
+    *,
+    file_system: str = RAW_FS,
+    path: str = POPULATION_SOURCE_PATH,
+) -> pd.DataFrame:
+    backend = storage or build_storage_backend()
+    return backend.read_csv(file_system, path)
 
 
-def _load_source_dataframe() -> pd.DataFrame:
-    return _download_csv(RAW_FS, POPULATION_SOURCE_PATH)
-
-
-def _normalize_population_headers(df: pd.DataFrame) -> pd.DataFrame:
+def normalize_population_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     cols = set(df.columns)
     inferred_time_period = str(os.getenv("POPULATION_TIME_PERIOD", "2022"))
 
@@ -104,26 +90,28 @@ def _normalize_population_headers(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
-def _write_curated(df: pd.DataFrame) -> None:
-    svc = _get_service_client()
-    curated_fs = svc.get_file_system_client(CURATED_FS)
+def publish_population_dataframe(
+    df: pd.DataFrame,
+    storage: StorageBackend | None = None,
+    *,
+    file_system: str = CURATED_FS,
+    path: str = POPULATION_CURATED_PATH,
+) -> None:
+    backend = storage or build_storage_backend()
+    backend.write_parquet(file_system, path, df)
 
-    parquet_buffer = io.BytesIO()
-    df.to_parquet(parquet_buffer, index=False)
 
-    out = curated_fs.get_file_client(POPULATION_CURATED_PATH)
-    payload = parquet_buffer.getvalue()
-    if out.exists():
-        out.delete_file()
-    out.create_file()
-    out.append_data(payload, 0, len(payload))
-    out.flush_data(len(payload))
+def run_population_pipeline(storage: StorageBackend | None = None) -> pd.DataFrame:
+    backend = storage or build_storage_backend()
+    source_df = load_population_source(backend)
+    normalized = normalize_population_dataframe(source_df)
+    publish_population_dataframe(normalized, backend)
+    return normalized
 
 
 def main() -> None:
-    df = _load_source_dataframe()
-    normalized = _normalize_population_headers(df)
-    _write_curated(normalized)
+    normalized = run_population_pipeline()
+    print(f"Normalized {len(normalized)} population rows")
 
 
 if __name__ == "__main__":
