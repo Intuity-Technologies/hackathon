@@ -9,5 +9,4 @@ These notebooks are reviewer-friendly templates for demonstrating the full techn
 ## How to use
 
 1. Upload to Colab or open from GitHub with the provided Colab badge links.
-2. Replace `<org>/<repo>` placeholders with your public repository path.
-3. Fill Azure credential environment variables before running ETL/API cells.
+2. Fill Azure credential environment variables before running ETL/API cells.

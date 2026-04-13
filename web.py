@@ -2,6 +2,12 @@ from __future__ import annotations
 
 import os
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 from flask import Flask, jsonify, redirect, render_template, request, session, url_for
 
 from service.housing_data import (

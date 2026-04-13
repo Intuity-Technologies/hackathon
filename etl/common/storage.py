@@ -3,7 +3,7 @@ from __future__ import annotations
 import io
 import json
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -92,6 +92,7 @@ class LocalStorageBackend(StorageBackend):
 @dataclass(slots=True)
 class AdlsStorageBackend(StorageBackend):
     account: str
+    _service_client: Any = field(init=False)
 
     def __post_init__(self) -> None:
         if DataLakeServiceClient is None or DefaultAzureCredential is None:
