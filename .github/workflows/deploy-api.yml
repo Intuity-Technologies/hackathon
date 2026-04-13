@@ -42,7 +42,7 @@ jobs:
 
       - name: Validate Required Secrets
         run: |
-          if [ -z "${{ secrets.AZURE_FUNCTIONAPP_NAME }}" ] || [ -z "${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}" ]; then
+          if [ -z "${{ secrets.AZURE_FUNCTIONAPP_NAME }}" ] || [ -z "${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_6B5452372BFF4346BCDD23BFB8249BD0 }}" ]; then
             echo "Missing required secrets: AZURE_FUNCTIONAPP_NAME and/or AZURE_FUNCTIONAPP_PUBLISH_PROFILE"
             exit 1
           fi
