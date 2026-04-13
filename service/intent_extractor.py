@@ -1,6 +1,6 @@
 import os
-from openai import AzureOpenAI
 import json
+from openai import AzureOpenAI
 
 client = AzureOpenAI(
     api_key=os.getenv("AZURE_OPENAI_API_KEY"),
@@ -9,22 +9,33 @@ client = AzureOpenAI(
 )
 
 INTENT_SYSTEM_PROMPT = """
-You extract structured intent from housing questions.
+You extract structured intent for a housing data system.
 
 Return ONLY valid JSON matching this schema:
 {
-  "city": string | null,
-  "topic": "price" | "rent" | "homelessness" | "population_density" | null,
-  "horizon_months": number | null
+  "area": string | null,
+  "field": string | null,
+  "time_period": string | null
 }
 
 Rules:
-- Use "price" for anything about house prices, housing costs, affordability, or how expensive buying a home is.
-- Use "rent" for questions about renting, rental prices, or cost of renting.
-- Use "homelessness" for questions about homelessness, rough sleeping, housing insecurity, or emergency accommodation.
-- Use "population_density" for questions about how dense, urban, or spread out a city is.
-- Only set "horizon_months" if the question clearly refers to a future time (e.g. "next year", "in a year").
-- Use null if a value cannot be confidently inferred.
+- "area" is the county or city being asked about (e.g. Galway, Carlow).
+- "field" must be one of the following artifact fields:
+  [
+    "predicted_classification_glm",
+    "pred_housing_stress_score",
+    "cluster_label",
+    "dominant_model_driver",
+    "pred_rent_level",
+    "pred_arrears_90d_rate",
+    "rent_growth",
+    "population_growth",
+    "housing_completions"
+  ]
+- "time_period" must be a specific quarter like "2018Q1", "2023Q4".
+- If the user says "last year", infer the most recent complete year, Q4.
+- If the user says "early 2018", infer "2018Q1".
+- Use null only if the value cannot be confidently inferred.
 - Do NOT include explanations or extra text.
 """
 
@@ -35,7 +46,7 @@ def extract_intent(question: str) -> dict:
             {"role": "system", "content": INTENT_SYSTEM_PROMPT},
             {"role": "user", "content": question}
         ],
-        temperature=0,  # important: consistency > creativity
+        temperature=0
     )
 
     return json.loads(response.choices[0].message.content)

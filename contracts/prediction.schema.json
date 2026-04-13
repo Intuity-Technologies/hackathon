@@ -5,7 +5,7 @@
   "required": [
     "city",
     "prediction_type",
-    "horizon_months",
+    "time_period",
     "predicted_value",
     "confidence",
     "model_name"
@@ -16,7 +16,7 @@
       "type": "string",
       "enum": ["median_price", "rent", "growth_rate"]
     },
-    "horizon_months": { "type": "integer" },
+    "time_period": { "type": "integer" },
     "predicted_value": { "type": "number" },
     "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
     "model_name": { "type": "string" }
