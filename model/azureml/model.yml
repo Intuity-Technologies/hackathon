@@ -1,0 +1,6 @@
+$schema: https://azuremlschemas.azureedge.net/latest/model.schema.json
+name: housing-pressure-model
+version: 1
+path: model/artifacts/housing_pressure_model.joblib
+type: custom_model
+description: RandomForest baseline for county-level housing pressure score inference.

@@ -1,0 +1,20 @@
+{
+  "data": [
+    {
+      "population_growth": 2.01,
+      "rent_growth": 12.53,
+      "housing_completions": 555.93,
+      "population_growth_score": 79.91,
+      "rent_pressure_score": 88.09,
+      "supply_gap_score": 81.54
+    },
+    {
+      "population_growth": 1.55,
+      "rent_growth": 11.97,
+      "housing_completions": 369.66,
+      "population_growth_score": 61.62,
+      "rent_pressure_score": 81.78,
+      "supply_gap_score": 96.27
+    }
+  ]
+}

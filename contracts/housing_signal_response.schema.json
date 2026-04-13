@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "HousingSignalResponse",
+  "type": "object",
+  "required": [
+    "area_name",
+    "area_level",
+    "time_period",
+    "overall_housing_pressure_score",
+    "classification"
+  ],
+  "properties": {
+    "area_name": {
+      "type": "string"
+    },
+    "area_level": {
+      "type": "string",
+      "enum": [
+        "county",
+        "national"
+      ]
+    },
+    "time_period": {
+      "type": "string"
+    },
+    "overall_housing_pressure_score": {
+      "type": "number"
+    },
+    "classification": {
+      "type": "string",
+      "enum": [
+        "Critical",
+        "High pressure",
+        "Watchlist",
+        "Stable"
+      ]
+    },
+    "dominant_driver": {
+      "type": "string"
+    },
+    "explanation_summary": {
+      "type": "string"
+    },
+    "rent_growth": {
+      "type": "number"
+    },
+    "population_growth": {
+      "type": "number"
+    },
+    "housing_completions": {
+      "type": "number"
+    }
+  },
+  "additionalProperties": true
+}

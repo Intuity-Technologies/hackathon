@@ -1,0 +1,7 @@
+pandas
+pyarrow
+adlfs
+azure-storage-file-datalake
+azure-identity
+python-dotenv
+requests

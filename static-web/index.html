@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Irish Signals Platform</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f5f6f8;
+        --panel: #ffffff;
+        --ink: #0f172a;
+        --muted: #475569;
+        --accent: #0b5fff;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+        background: linear-gradient(160deg, #e2e8f0 0%, var(--bg) 35%, #fef3c7 100%);
+        color: var(--ink);
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+      }
+
+      main {
+        width: min(720px, 92vw);
+        background: var(--panel);
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 20px 45px rgba(15, 23, 42, 0.12);
+      }
+
+      h1 {
+        margin-top: 0;
+      }
+
+      p {
+        line-height: 1.5;
+        color: var(--muted);
+      }
+
+      .links {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        margin-top: 1.2rem;
+      }
+
+      a {
+        text-decoration: none;
+        font-weight: 600;
+        color: white;
+        background: var(--accent);
+        border-radius: 999px;
+        padding: 0.65rem 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Irish Housing Signals</h1>
+      <p>
+        This static entrypoint is deployed through Azure Static Web Apps.
+        The retrieval and model-backed app remains hosted on Azure App Service
+        and Azure Functions.
+      </p>
+      <div class="links">
+        <a href="https://github.com/">Repository</a>
+      </div>
+    </main>
+  </body>
+</html>

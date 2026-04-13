@@ -1,0 +1,96 @@
+name: Data Contract
+
+on:
+  push:
+    paths:
+      - etl/**
+      - api/function_app.py
+      - .github/workflows/data-contract.yml
+  pull_request:
+    paths:
+      - etl/**
+      - api/function_app.py
+      - .github/workflows/data-contract.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: data-contract-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-signals:
+    name: Validate Signals Contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      AZURE_STORAGE_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      AREA_LEVEL: county
+      PYTHONPATH: .
+      RAW_FILE_SYSTEM: raw
+      CURATED_FILE_SYSTEM: curated
+      SIGNALS_FILE_SYSTEM: signals
+      POPULATION_SOURCE_PATH: cso_population/year=2022/population.csv
+      RENTS_SOURCE_PATH: rents/year=2024/rents.csv
+      PLANNING_SOURCE_PATH: planning/year=2024/planning.csv
+      POPULATION_CURATED_PATH: population/area_level=county/part-000.parquet
+      RENTS_CURATED_PATH: rents/area_level=county/part-000.parquet
+      PLANNING_CURATED_PATH: planning/area_level=county/part-000.parquet
+      SIGNALS_FILE_PATH: housing_pressure/area_level=county/part-000.parquet
+      SIGNALS_LATEST_JSON_PATH: housing_pressure/latest.json
+      PLANNING_STRICT_COUNTY_ONLY: "true"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Required Azure Config
+        run: |
+          test -n "${AZURE_STORAGE_ACCOUNT}" || (echo "Missing secret AZURE_STORAGE_ACCOUNT" && exit 1)
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            etl/requirements.txt
+            api/requirements.txt
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r etl/requirements.txt -r api/requirements.txt
+
+      - name: Build Curated Parquets And Signals
+        run: |
+          python etl/transform/normalize_population.py
+          python etl/transform/normalize_rents.py
+          python etl/transform/normalize_planning.py
+          python etl/transform/build_signals.py
+
+      - name: Validate Signal Contract
+        run: |
+          python etl/tests/check_signals_contract.py \
+            --min-periods 4 \
+            --min-areas 3
+
+      - name: Validate API Can Read Signals
+        run: |
+          python - <<'PY'
+          from api.function_app import MODEL_FEATURE_COLUMNS, load_latest_signals
+
+          df = load_latest_signals()
+          if df.empty:
+              raise ValueError("API load_latest_signals returned an empty dataframe")
+
+          missing = sorted(set(MODEL_FEATURE_COLUMNS) - set(df.columns))
+          if missing:
+              raise ValueError(f"Signals missing model feature columns: {missing}")
+
+          print(f"API read check passed with {len(df)} rows")
+          PY

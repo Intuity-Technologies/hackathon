@@ -1,0 +1,74 @@
+name: Deploy Web
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - web.py
+      - templates/**
+      - service/**
+      - .github/workflows/deploy-web.yml
+      - requirements.txt
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-web-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy Flask Web App
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Compile Flask App
+        run: python -m compileall service web.py
+
+      - name: Validate Required Secrets
+        run: |
+          if [ -z "${{ secrets.AZURE_WEBAPP_NAME }}" ] || [ -z "${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}" ]; then
+            echo "Missing required secrets: AZURE_WEBAPP_NAME and/or AZURE_WEBAPP_PUBLISH_PROFILE"
+            exit 1
+          fi
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: .
+
+      - name: Smoke Test Web App
+        run: |
+          url="https://${{ secrets.AZURE_WEBAPP_NAME }}.azurewebsites.net/"
+          echo "Checking ${url}"
+          for attempt in $(seq 1 12); do
+            status_code="$(curl -sS -o /tmp/web-health.html -w "%{http_code}" "${url}" || true)"
+            if [ "${status_code}" = "200" ]; then
+              echo "Web app check passed."
+              exit 0
+            fi
+            echo "Attempt ${attempt}/12 returned ${status_code}. Retrying in 10s."
+            sleep 10
+          done
+          echo "Web app check failed after retries."
+          exit 1

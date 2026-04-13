@@ -1,15 +1,11 @@
-
-from dotenv import load_dotenv
-load_dotenv()
-
-from openai import AzureOpenAI
 import os
 
-client = AzureOpenAI(
-    api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-    api_version="2024-02-15-preview",
-    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT")
-)
+from dotenv import load_dotenv
+from openai import AzureOpenAI
+
+load_dotenv()
+
+CLIENT = None
 
 
 LLM_DISCLAIMER = (
@@ -18,18 +14,53 @@ LLM_DISCLAIMER = (
 
 
 SYSTEM_PROMPT = """
-You are a housing assisstant explain the situation qualitatively.
-Do not generate or estimate numerical prices, costs, percentages, or forecasts.
+You are a housing assistant. Explain the situation qualitatively.
+Never generate or estimate numerical prices, costs, percentages, or forecasts.
+If the user asks for numbers and no verified data was provided, clearly say that.
 If the answer is uncertain, say so clearly.
 """
 
-def call_llm(question: str) -> str:
-    response = client.chat.completions.create(
-        model=os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME"),
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": question}
-        ],
-        temperature=0.2,
+
+def _get_client() -> AzureOpenAI | None:
+    global CLIENT
+    if CLIENT is not None:
+        return CLIENT
+
+    api_key = os.getenv("AZURE_OPENAI_API_KEY", "").strip()
+    endpoint = os.getenv("AZURE_OPENAI_ENDPOINT", "").strip()
+    if not api_key or not endpoint:
+        return None
+
+    CLIENT = AzureOpenAI(
+        api_key=api_key,
+        api_version="2024-02-15-preview",
+        azure_endpoint=endpoint,
     )
-    return LLM_DISCLAIMER + response.choices[0].message.content
+    return CLIENT
+
+
+def call_llm(question: str) -> str:
+    client = _get_client()
+    deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME", "").strip()
+    if not client or not deployment:
+        return (
+            LLM_DISCLAIMER
+            + "No qualitative explanation is available because Azure OpenAI is not configured."
+        )
+
+    try:
+        response = client.chat.completions.create(
+            model=deployment,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": question},
+            ],
+            temperature=0.2,
+        )
+        content = response.choices[0].message.content or ""
+        return LLM_DISCLAIMER + content.strip()
+    except Exception:
+        return (
+            LLM_DISCLAIMER
+            + "No qualitative explanation is available right now because the language model service is unavailable."
+        )

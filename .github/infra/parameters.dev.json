@@ -1,0 +1,33 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "value": "westeurope"
+    },
+    "storageAccountName": {
+      "value": "irishsignalsdev12345"
+    },
+    "functionAppName": {
+      "value": "func-irish-signals-dev-12345"
+    },
+    "webAppName": {
+      "value": "web-irish-signals-dev-12345"
+    },
+    "keyVaultName": {
+      "value": "kv-irish-signals-dev-12345"
+    },
+    "appInsightsName": {
+      "value": "appi-irish-signals-dev"
+    },
+    "logAnalyticsWorkspaceName": {
+      "value": "log-irish-signals-dev"
+    },
+    "mlWorkspaceName": {
+      "value": "mlw-irish-signals-dev-12345"
+    },
+    "mlContainerRegistryName": {
+      "value": "acririshsignalsdev12345"
+    }
+  }
+}

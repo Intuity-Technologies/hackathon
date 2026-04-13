@@ -5,34 +5,41 @@ from service.intent_extractor import extract_intent
 
 
 def answer(question: str):
-    # 1️⃣ Extract structured intent using LLM (JSON only)
+    # 1) Extract structured intent using LLM (JSON only)
     intent = extract_intent(question)
 
-    city = intent["city"]
-    topic = intent["topic"]
-    horizon = intent["horizon_months"]
+    city = intent.get("city")
+    topic = intent.get("topic")
+    horizon = intent.get("horizon_months")
 
-    # 2️⃣ Map topic → prediction type
-    prediction_type = None
-    if topic == "price":
-        prediction_type = "median_price"
-    elif topic == "rent":
-        prediction_type = "rent"
+    # 2) Map topic -> retrieval artifact type.
+    prediction_type_map = {
+        "price": "housing_pressure",
+        "rent": "rent_pressure",
+        "homelessness": "homelessness",
+        "population_density": "population_density",
+    }
+    prediction_type = prediction_type_map.get(topic)
 
-    # 3️⃣ Deterministic lookup
+    # 3) Deterministic lookup from API-backed prediction store.
     prediction = lookup_prediction(city, prediction_type, horizon)
 
     if prediction:
-        # HARD GUARANTEE:
-        # If a prediction exists, the LLM is NEVER used for answers
+        # Hard guarantee: if retrieval exists, return deterministic text.
         return render_prediction(prediction)
 
-    # ✅ LLM fallback only when no artifact exists
+    if topic in {"price", "rent"}:
+        return (
+            "I could not find a verified numeric artifact for that query. "
+            "Try asking for a county with available data (for example: Mayo, Cork, Dublin)."
+        )
+
+    # LLM fallback only for qualitative answers when no artifact exists.
     return call_llm(question)
 
 
 if __name__ == "__main__":
-    print("Housing Prediction Assistant (retrieval-first)")
+    print("Housing Signal Assistant (retrieval-first)")
     print("Type your question, Ctrl+C to exit\n")
 
     while True:

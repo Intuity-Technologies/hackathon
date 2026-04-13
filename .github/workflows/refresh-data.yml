@@ -1,0 +1,146 @@
+name: Refresh Data
+
+on:
+  workflow_dispatch:
+    inputs:
+      pull_latest_cso:
+        description: Pull latest CSO PxStat tables before transformations
+        required: false
+        default: true
+        type: boolean
+      cso_population_table_id:
+        description: CSO PxStat table for population series
+        required: false
+        default: PEA08
+        type: string
+      cso_rents_table_id:
+        description: CSO PxStat table for rents series
+        required: false
+        default: RIQ02
+        type: string
+      cso_planning_table_id:
+        description: CSO PxStat table for planning/completions series
+        required: false
+        default: NDQ05
+        type: string
+      planning_strict_mode:
+        description: PLANNING_STRICT_COUNTY_ONLY value
+        required: false
+        default: auto
+        type: choice
+        options:
+          - 'auto'
+          - 'true'
+          - 'false'
+  schedule:
+    - cron: "0 5 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: refresh-data-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-validate:
+    name: Build And Validate Signals
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      AZURE_STORAGE_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      AREA_LEVEL: county
+      PYTHONPATH: .
+      RAW_FILE_SYSTEM: raw
+      CURATED_FILE_SYSTEM: curated
+      SIGNALS_FILE_SYSTEM: signals
+      POPULATION_SOURCE_PATH: cso_population/latest/population.csv
+      RENTS_SOURCE_PATH: rents/latest/rents.csv
+      PLANNING_SOURCE_PATH: planning/latest/planning.csv
+      POPULATION_CURATED_PATH: population/area_level=county/part-000.parquet
+      RENTS_CURATED_PATH: rents/area_level=county/part-000.parquet
+      PLANNING_CURATED_PATH: planning/area_level=county/part-000.parquet
+      SIGNALS_FILE_PATH: housing_pressure/area_level=county/part-000.parquet
+      SIGNALS_LATEST_JSON_PATH: housing_pressure/latest.json
+      PLANNING_STRICT_COUNTY_ONLY: ${{ github.event.inputs.planning_strict_mode || 'auto' }}
+      CSO_POPULATION_TABLE_ID: ${{ github.event.inputs.cso_population_table_id || 'PEA08' }}
+      CSO_RENTS_TABLE_ID: ${{ github.event.inputs.cso_rents_table_id || 'RIQ02' }}
+      CSO_PLANNING_TABLE_ID: ${{ github.event.inputs.cso_planning_table_id || 'NDQ05' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Required Azure Config
+        run: |
+          test -n "${AZURE_STORAGE_ACCOUNT}" || (echo "Missing secret AZURE_STORAGE_ACCOUNT" && exit 1)
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            etl/requirements.txt
+            api/requirements.txt
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r etl/requirements.txt -r api/requirements.txt
+
+      - name: Pull Latest CSO PxStat Tables
+        if: ${{ github.event_name == 'schedule' || github.event.inputs.pull_latest_cso != 'false' }}
+        run: |
+          echo "Fetching CSO population table ${CSO_POPULATION_TABLE_ID}"
+          python etl/ingest/fetch_pxstat_table.py "${CSO_POPULATION_TABLE_ID}" \
+            --format CSV \
+            --file-system "${RAW_FILE_SYSTEM}" \
+            --blob-path "${POPULATION_SOURCE_PATH}"
+
+          echo "Fetching CSO rents table ${CSO_RENTS_TABLE_ID}"
+          python etl/ingest/fetch_pxstat_table.py "${CSO_RENTS_TABLE_ID}" \
+            --format CSV \
+            --file-system "${RAW_FILE_SYSTEM}" \
+            --blob-path "${RENTS_SOURCE_PATH}"
+
+          echo "Fetching CSO planning table ${CSO_PLANNING_TABLE_ID}"
+          python etl/ingest/fetch_pxstat_table.py "${CSO_PLANNING_TABLE_ID}" \
+            --format CSV \
+            --file-system "${RAW_FILE_SYSTEM}" \
+            --blob-path "${PLANNING_SOURCE_PATH}"
+
+      - name: Build Curated Parquets And Signals
+        run: |
+          echo "Population source: ${RAW_FILE_SYSTEM}/${POPULATION_SOURCE_PATH}"
+          echo "Rents source: ${RAW_FILE_SYSTEM}/${RENTS_SOURCE_PATH}"
+          echo "Planning source: ${RAW_FILE_SYSTEM}/${PLANNING_SOURCE_PATH}"
+          echo "Planning strict mode: ${PLANNING_STRICT_COUNTY_ONLY}"
+          python etl/transform/normalize_population.py
+          python etl/transform/normalize_rents.py
+          python etl/transform/normalize_planning.py
+          python etl/transform/build_signals.py
+
+      - name: Validate Signal Contract
+        run: |
+          python etl/tests/check_signals_contract.py \
+            --min-periods 4 \
+            --min-areas 3
+
+      - name: Validate API Can Read Signals
+        run: |
+          python - <<'PY'
+          from api.function_app import MODEL_FEATURE_COLUMNS, load_latest_signals
+
+          df = load_latest_signals()
+          if df.empty:
+              raise ValueError("API load_latest_signals returned an empty dataframe")
+
+          missing = sorted(set(MODEL_FEATURE_COLUMNS) - set(df.columns))
+          if missing:
+              raise ValueError(f"Signals missing model feature columns: {missing}")
+
+          print(f"API read check passed with {len(df)} rows")
+          PY

@@ -1,4 +1,4 @@
+from service.orchestrator import answer
 
-from service.llm_client import call_llm
-
-print(call_llm("Explain housing demand factors without using numbers."))
+if __name__ == "__main__":
+    print(answer("What is the rent trend in Mayo?"))

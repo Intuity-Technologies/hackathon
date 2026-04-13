@@ -1,0 +1,4 @@
+$schema: https://azuremlschemas.azureedge.net/latest/managedOnlineEndpoint.schema.json
+name: irish-housing-signals-endpoint
+auth_mode: key
+description: Managed online endpoint for Irish housing pressure score inference.
