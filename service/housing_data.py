@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import os
 import re
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -9,7 +11,7 @@ from typing import Any
 import pandas as pd
 
 from etl.common.geography import normalize_area_name
-from etl.common.storage import utc_now_iso
+from etl.common.storage import StorageBackend, build_storage_backend, utc_now_iso
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DATA_ROOT = REPO_ROOT / "data"
@@ -32,6 +34,25 @@ ARTIFACT_FILES = {
     "trends": DEMO_ROOT / "trends.json",
     "sources_manifest": DEMO_ROOT / "sources_manifest.json",
 }
+
+DEMO_ARTIFACTS_FILE_SYSTEM = "demo"
+DEMO_ARTIFACT_PATH_DEFAULTS = {
+    "overview": "housing_pressure/overview.json",
+    "leaderboard": "housing_pressure/leaderboard.json",
+    "area_detail": "housing_pressure/area_detail.json",
+    "compare": "housing_pressure/compare.json",
+    "trends": "housing_pressure/trends.json",
+    "sources_manifest": "housing_pressure/sources_manifest.json",
+}
+DEMO_ARTIFACT_ENV_VARS = {
+    "overview": "DEMO_OVERVIEW_PATH",
+    "leaderboard": "DEMO_LEADERBOARD_PATH",
+    "area_detail": "DEMO_AREA_DETAIL_PATH",
+    "compare": "DEMO_COMPARE_PATH",
+    "trends": "DEMO_TRENDS_PATH",
+    "sources_manifest": "DEMO_SOURCES_PATH",
+}
+DEFAULT_CACHE_TTL_SECONDS = 120
 
 COUNTY_TO_REGION = {
     "Carlow": "South-East",
@@ -83,7 +104,11 @@ class DemoArtifactBundle:
         }
 
 
-_CACHE: dict[str, Any] = {"signature": None, "bundle": None}
+_CACHE: dict[str, Any] = {"signature": None, "bundle": None, "loaded_at": 0.0}
+
+
+def _env(name: str, default: str) -> str:
+    return os.getenv(name, default)
 
 
 def _mtime_signature(paths: list[Path]) -> str:
@@ -94,6 +119,49 @@ def _mtime_signature(paths: list[Path]) -> str:
             continue
         pieces.append(f"{path.name}:{int(path.stat().st_mtime)}:{path.stat().st_size}")
     return "|".join(pieces)
+
+
+def _demo_artifact_refs() -> dict[str, tuple[str, str]]:
+    file_system = _env("DEMO_ARTIFACTS_FILE_SYSTEM", DEMO_ARTIFACTS_FILE_SYSTEM)
+    return {
+        key: (file_system, _env(DEMO_ARTIFACT_ENV_VARS[key], default_path))
+        for key, default_path in DEMO_ARTIFACT_PATH_DEFAULTS.items()
+    }
+
+
+def _storage_reference(file_system: str, path: str) -> str:
+    return f"adls://{file_system}/{path}"
+
+
+def _cache_signature(storage: StorageBackend) -> str:
+    if storage.data_mode == "adls":
+        refs = _demo_artifact_refs()
+        signal_fs = _env("SIGNALS_FILE_SYSTEM", "signals")
+        signal_path = _env("SIGNALS_FILE_PATH", "housing_pressure/area_level=county/part-000.parquet")
+        account = os.getenv("AZURE_STORAGE_ACCOUNT", "")
+        parts = ["mode:adls", f"account:{account}", f"signals:{signal_fs}/{signal_path}"]
+        parts.extend(f"{key}:{file_system}/{path}" for key, (file_system, path) in refs.items())
+        return "|".join(parts)
+
+    return _mtime_signature(
+        list(ARTIFACT_FILES.values())
+        + [
+            DEFAULT_SIGNALS_PATH,
+            DEFAULT_PRICE_PATH,
+            DEFAULT_HOMELESSNESS_REGIONAL_PATH,
+            DEFAULT_HOMELESSNESS_NATIONAL_PATH,
+            DEFAULT_OVERBURDEN_PATH,
+            DEFAULT_PBSA_PATH,
+            DEFAULT_ESB_TOTAL_PATH,
+            DEFAULT_NDC_PATH,
+        ]
+    )
+
+
+def _cache_ttl_seconds(storage: StorageBackend) -> int:
+    if storage.data_mode != "adls":
+        return 0
+    return max(int(_env("DEMO_CACHE_TTL_SECONDS", str(DEFAULT_CACHE_TTL_SECONDS))), 0)
 
 
 def _read_json(path: Path) -> Any:
@@ -139,8 +207,21 @@ def _format_currency(value: float | None) -> str:
     return f"EUR {value:,.0f}"
 
 
-def _load_signals_dataframe(path: Path = DEFAULT_SIGNALS_PATH) -> pd.DataFrame:
-    df = pd.read_parquet(path).copy()
+def _runtime_mode(data_mode: str) -> str:
+    return "azure-storage" if data_mode == "adls" else "local-first"
+
+
+def _load_signals_dataframe(
+    path: Path = DEFAULT_SIGNALS_PATH,
+    storage: StorageBackend | None = None,
+) -> pd.DataFrame:
+    if storage is not None and storage.data_mode == "adls":
+        df = storage.read_parquet(
+            _env("SIGNALS_FILE_SYSTEM", "signals"),
+            _env("SIGNALS_FILE_PATH", "housing_pressure/area_level=county/part-000.parquet"),
+        ).copy()
+    else:
+        df = pd.read_parquet(path).copy()
     for column in [
         "overall_housing_pressure_score",
         "population_growth",
@@ -160,7 +241,7 @@ def _load_signals_dataframe(path: Path = DEFAULT_SIGNALS_PATH) -> pd.DataFrame:
     return df
 
 
-def _load_county_sale_prices() -> dict[str, dict[str, Any]]:
+def _load_county_sale_prices(*, data_mode: str) -> dict[str, dict[str, Any]]:
     frame = pd.read_csv(DEFAULT_PRICE_PATH).rename(
         columns={"Unnamed: 0": "area_name", "Unnamed: 1": "median_sale_price"}
     )
@@ -182,12 +263,12 @@ def _load_county_sale_prices() -> dict[str, dict[str, Any]]:
             "geography_level": "county",
             "coverage_scope": "County",
             "quality_flag": "verified-context",
-            "data_mode": "local",
+            "data_mode": data_mode,
         }
     return records
 
 
-def _load_regional_homelessness() -> dict[str, dict[str, Any]]:
+def _load_regional_homelessness(*, data_mode: str) -> dict[str, dict[str, Any]]:
     frame = pd.read_csv(DEFAULT_HOMELESSNESS_REGIONAL_PATH)
     out: dict[str, dict[str, Any]] = {}
     for row in frame.to_dict(orient="records"):
@@ -205,12 +286,12 @@ def _load_regional_homelessness() -> dict[str, dict[str, Any]]:
             "geography_level": "region",
             "coverage_scope": "Region",
             "quality_flag": "verified-context",
-            "data_mode": "local",
+            "data_mode": data_mode,
         }
     return out
 
 
-def _load_national_overburden() -> dict[str, Any]:
+def _load_national_overburden(*, data_mode: str) -> dict[str, Any]:
     frame = pd.read_parquet(DEFAULT_OVERBURDEN_PATH)
     latest = frame.sort_values("time_period", ascending=False).iloc[0]
     rate = _to_float(latest.get("housing_cost_overburden_rate"))
@@ -226,11 +307,11 @@ def _load_national_overburden() -> dict[str, Any]:
         "geography_level": "national",
         "coverage_scope": "National",
         "quality_flag": "verified-context",
-        "data_mode": "local",
+        "data_mode": data_mode,
     }
 
 
-def _load_latest_pbsa() -> dict[str, Any]:
+def _load_latest_pbsa(*, data_mode: str) -> dict[str, Any]:
     frame = pd.read_csv(DEFAULT_PBSA_PATH)
     frame["Quarter"] = frame["Quarter"].astype(str).str.strip()
     frame["Total"] = pd.to_numeric(frame["Total"], errors="coerce")
@@ -247,11 +328,11 @@ def _load_latest_pbsa() -> dict[str, Any]:
         "geography_level": "national",
         "coverage_scope": "National",
         "quality_flag": "context-only",
-        "data_mode": "local",
+        "data_mode": data_mode,
     }
 
 
-def _load_latest_esb_connections() -> dict[str, Any]:
+def _load_latest_esb_connections(*, data_mode: str) -> dict[str, Any]:
     frame = pd.read_csv(DEFAULT_ESB_TOTAL_PATH).rename(
         columns={"Unnamed: 0": "year", "Total ESB Connections": "total_connections"}
     )
@@ -270,11 +351,11 @@ def _load_latest_esb_connections() -> dict[str, Any]:
         "geography_level": "national",
         "coverage_scope": "National",
         "quality_flag": "context-only",
-        "data_mode": "local",
+        "data_mode": data_mode,
     }
 
 
-def _load_latest_supply_mix() -> dict[str, Any]:
+def _load_latest_supply_mix(*, data_mode: str) -> dict[str, Any]:
     frame = pd.read_csv(DEFAULT_NDC_PATH).rename(columns={"Unnamed: 0": "time_period"})
     for column in ["Single House", "Scheme House", "Apartment"]:
         frame[column] = pd.to_numeric(frame[column], errors="coerce")
@@ -304,11 +385,11 @@ def _load_latest_supply_mix() -> dict[str, Any]:
         "geography_level": "national",
         "coverage_scope": "National",
         "quality_flag": "verified-context",
-        "data_mode": "local",
+        "data_mode": data_mode,
     }
 
 
-def _load_national_homeless_trend() -> dict[str, Any]:
+def _load_national_homeless_trend(*, data_mode: str) -> dict[str, Any]:
     frame = pd.read_csv(DEFAULT_HOMELESSNESS_NATIONAL_PATH).rename(
         columns={
             "Unnamed: 0": "time_period",
@@ -333,7 +414,7 @@ def _load_national_homeless_trend() -> dict[str, Any]:
         "geography_level": "national",
         "coverage_scope": "National",
         "quality_flag": "verified-context",
-        "data_mode": "local",
+        "data_mode": data_mode,
     }
 
 
@@ -409,23 +490,28 @@ def _summary_row(row: pd.Series, sale_price_signal: dict[str, Any] | None = None
     return output
 
 
-def build_demo_payloads(signal_df: pd.DataFrame | None = None) -> DemoArtifactBundle:
-    df = signal_df.copy() if signal_df is not None else _load_signals_dataframe()
+def build_demo_payloads(
+    signal_df: pd.DataFrame | None = None,
+    *,
+    storage: StorageBackend | None = None,
+) -> DemoArtifactBundle:
+    backend = storage or build_storage_backend()
+    df = signal_df.copy() if signal_df is not None else _load_signals_dataframe(storage=backend)
     latest_period = _latest_period(df)
     latest = df[df["time_period"].astype(str) == latest_period].copy()
     latest = latest.sort_values("overall_housing_pressure_score", ascending=False).reset_index(drop=True)
 
     generated_at = utc_now_iso()
     published_at = str(latest["published_at"].iloc[0]) if "published_at" in latest.columns else generated_at
-    data_mode = str(latest["data_mode"].iloc[0]) if "data_mode" in latest.columns else "local"
+    data_mode = str(latest["data_mode"].iloc[0]) if "data_mode" in latest.columns else backend.data_mode
 
-    sale_prices = _load_county_sale_prices()
-    regional_homelessness = _load_regional_homelessness()
-    national_overburden = _load_national_overburden()
-    national_pbsa = _load_latest_pbsa()
-    national_esb = _load_latest_esb_connections()
-    national_supply_mix = _load_latest_supply_mix()
-    national_homeless_trend = _load_national_homeless_trend()
+    sale_prices = _load_county_sale_prices(data_mode=data_mode)
+    regional_homelessness = _load_regional_homelessness(data_mode=data_mode)
+    national_overburden = _load_national_overburden(data_mode=data_mode)
+    national_pbsa = _load_latest_pbsa(data_mode=data_mode)
+    national_esb = _load_latest_esb_connections(data_mode=data_mode)
+    national_supply_mix = _load_latest_supply_mix(data_mode=data_mode)
+    national_homeless_trend = _load_national_homeless_trend(data_mode=data_mode)
 
     leaderboard_rows = [
         _summary_row(row, sale_prices.get(str(row["area_name"])))
@@ -436,6 +522,14 @@ def build_demo_payloads(signal_df: pd.DataFrame | None = None) -> DemoArtifactBu
     highest_pressure = leaderboard_rows[0]
     highest_sale_price = max(sale_prices.items(), key=lambda item: item[1]["value"])
     total_regional_homeless_adults = sum(item["total_adults"] or 0 for item in regional_homelessness.values())
+    signal_reference = (
+        _storage_reference(
+            _env("SIGNALS_FILE_SYSTEM", "signals"),
+            _env("SIGNALS_FILE_PATH", "housing_pressure/area_level=county/part-000.parquet"),
+        )
+        if data_mode == "adls"
+        else str(DEFAULT_SIGNALS_PATH.relative_to(REPO_ROOT))
+    )
 
     overview = {
         "generated_at": generated_at,
@@ -492,7 +586,7 @@ def build_demo_payloads(signal_df: pd.DataFrame | None = None) -> DemoArtifactBu
         "freshness": {
             "latest_period": latest_period,
             "published_at": published_at,
-            "runtime_mode": "local-first",
+            "runtime_mode": _runtime_mode(data_mode),
             "data_mode": data_mode,
             "quality_flag": "verified-demo-artifacts",
         },
@@ -591,7 +685,7 @@ def build_demo_payloads(signal_df: pd.DataFrame | None = None) -> DemoArtifactBu
                 "geography_level": "county",
                 "coverage_scope": "County",
                 "quality_flag": "verified-composite",
-                "path": str(DEFAULT_SIGNALS_PATH.relative_to(REPO_ROOT)),
+                "path": signal_reference,
                 "notes": "Deterministic score using population growth, rent pressure, and housing completions.",
             },
             {
@@ -673,15 +767,33 @@ def build_demo_payloads(signal_df: pd.DataFrame | None = None) -> DemoArtifactBu
     )
 
 
-def write_demo_artifacts(output_dir: Path = DEMO_ROOT, signal_df: pd.DataFrame | None = None) -> DemoArtifactBundle:
-    bundle = build_demo_payloads(signal_df=signal_df)
+def _write_bundle_to_local(output_dir: Path, bundle: DemoArtifactBundle) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     for key, path in ARTIFACT_FILES.items():
         _write_json(path if output_dir == DEMO_ROOT else output_dir / path.name, getattr(bundle, key))
+
+
+def _write_bundle_to_storage(storage: StorageBackend, bundle: DemoArtifactBundle) -> None:
+    for key, (file_system, path) in _demo_artifact_refs().items():
+        storage.write_json(file_system, path, getattr(bundle, key))
+
+
+def write_demo_artifacts(
+    output_dir: Path = DEMO_ROOT,
+    signal_df: pd.DataFrame | None = None,
+    *,
+    storage: StorageBackend | None = None,
+) -> DemoArtifactBundle:
+    backend = storage or build_storage_backend()
+    bundle = build_demo_payloads(signal_df=signal_df, storage=backend)
+    if output_dir != DEMO_ROOT or backend.data_mode == "local":
+        _write_bundle_to_local(output_dir, bundle)
+    else:
+        _write_bundle_to_storage(backend, bundle)
     return bundle
 
 
-def _load_bundle_from_artifacts() -> DemoArtifactBundle | None:
+def _load_bundle_from_local_artifacts() -> DemoArtifactBundle | None:
     if not all(path.exists() for path in ARTIFACT_FILES.values()):
         return None
     return DemoArtifactBundle(
@@ -694,28 +806,44 @@ def _load_bundle_from_artifacts() -> DemoArtifactBundle | None:
     )
 
 
-def load_demo_artifacts(force_rebuild: bool = False) -> DemoArtifactBundle:
-    signature = _mtime_signature(
-        list(ARTIFACT_FILES.values())
-        + [
-            DEFAULT_SIGNALS_PATH,
-            DEFAULT_PRICE_PATH,
-            DEFAULT_HOMELESSNESS_REGIONAL_PATH,
-            DEFAULT_HOMELESSNESS_NATIONAL_PATH,
-            DEFAULT_OVERBURDEN_PATH,
-            DEFAULT_PBSA_PATH,
-            DEFAULT_ESB_TOTAL_PATH,
-            DEFAULT_NDC_PATH,
-        ]
+def _load_bundle_from_storage(storage: StorageBackend) -> DemoArtifactBundle | None:
+    refs = _demo_artifact_refs()
+    if not all(storage.exists(file_system, path) for file_system, path in refs.values()):
+        return None
+    return DemoArtifactBundle(
+        overview=json.loads(storage.read_text(*refs["overview"])),
+        leaderboard=json.loads(storage.read_text(*refs["leaderboard"])),
+        area_detail=json.loads(storage.read_text(*refs["area_detail"])),
+        compare=json.loads(storage.read_text(*refs["compare"])),
+        trends=json.loads(storage.read_text(*refs["trends"])),
+        sources_manifest=json.loads(storage.read_text(*refs["sources_manifest"])),
     )
-    if not force_rebuild and _CACHE["signature"] == signature and _CACHE["bundle"] is not None:
+
+
+def _load_bundle_from_artifacts(storage: StorageBackend) -> DemoArtifactBundle | None:
+    if storage.data_mode == "adls":
+        return _load_bundle_from_storage(storage)
+    return _load_bundle_from_local_artifacts()
+
+
+def load_demo_artifacts(force_rebuild: bool = False) -> DemoArtifactBundle:
+    backend = build_storage_backend()
+    signature = _cache_signature(backend)
+    cache_ttl = _cache_ttl_seconds(backend)
+    cache_is_fresh = (
+        _CACHE["signature"] == signature
+        and _CACHE["bundle"] is not None
+        and (cache_ttl == 0 or (time.monotonic() - float(_CACHE["loaded_at"])) < cache_ttl)
+    )
+    if not force_rebuild and cache_is_fresh:
         return _CACHE["bundle"]
 
-    bundle = None if force_rebuild else _load_bundle_from_artifacts()
+    bundle = None if force_rebuild else _load_bundle_from_artifacts(backend)
     if bundle is None:
-        bundle = build_demo_payloads()
+        bundle = build_demo_payloads(storage=backend)
     _CACHE["signature"] = signature
     _CACHE["bundle"] = bundle
+    _CACHE["loaded_at"] = time.monotonic()
     return bundle
 
 

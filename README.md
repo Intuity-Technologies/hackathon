@@ -29,7 +29,7 @@ python etl\transform\build_demo_artifacts.py
 python web.py
 ```
 
-The app works locally without Azure credentials by reading checked-in signals and demo artifacts.
+The app works locally without Azure credentials by reading checked-in signals and demo artifacts. In Azure, the same dashboard reads its `signals` and `demo` payloads directly from ADLS-backed storage.
 
 ## ETL Modes
 

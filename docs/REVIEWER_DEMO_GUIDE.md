@@ -36,7 +36,7 @@ Open `http://127.0.0.1:5000`.
 - The county score is deterministic and explainable.
 - Context signals are separated by scope instead of being mixed into the score without justification.
 - The same artifact layer powers the dashboard, API, and assistant.
-- Local-first demo artifacts make the prototype stable even without live cloud dependencies.
+- The same judged UI can run from checked-in local artifacts or from Azure-hosted `signals` and `demo` artifacts provisioned by the Bicep stack.
 
 ## 4. Supporting Technical Evidence
 

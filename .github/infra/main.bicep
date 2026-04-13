@@ -43,6 +43,39 @@ param deployStaticWebApp bool = false
 @description('Storage SKU for ADLS account.')
 param storageSku string = 'Standard_LRS'
 
+@description('Data access mode used by the deployed apps.')
+param pipelineDataMode string = 'adls'
+
+@description('Signals file system used by the API and web app.')
+param signalsFileSystem string = 'signals'
+
+@description('Signals parquet path consumed by the API and web app.')
+param signalsFilePath string = 'housing_pressure/area_level=county/part-000.parquet'
+
+@description('Demo artifact file system used by the API and web app.')
+param demoArtifactsFileSystem string = 'demo'
+
+@description('Overview artifact path for the judged dashboard experience.')
+param demoOverviewPath string = 'housing_pressure/overview.json'
+
+@description('Leaderboard artifact path for the judged dashboard experience.')
+param demoLeaderboardPath string = 'housing_pressure/leaderboard.json'
+
+@description('Area detail artifact path for the judged dashboard experience.')
+param demoAreaDetailPath string = 'housing_pressure/area_detail.json'
+
+@description('Compare artifact path for the judged dashboard experience.')
+param demoComparePath string = 'housing_pressure/compare.json'
+
+@description('Trend artifact path for the judged dashboard experience.')
+param demoTrendsPath string = 'housing_pressure/trends.json'
+
+@description('Sources manifest path for the judged dashboard experience.')
+param demoSourcesPath string = 'housing_pressure/sources_manifest.json'
+
+@description('In-process cache TTL for Azure-hosted demo artifact reads.')
+param demoCacheTtlSeconds int = 120
+
 module storage './modules/storage.bicep' = {
   name: 'storageDeployment'
   params: {
@@ -71,6 +104,17 @@ module functionApp './modules/function-app.bicep' = {
     storageAccountId: storage.outputs.storageAccountId
     appInsightsConnectionString: observability.outputs.appInsightsConnectionString
     appInsightsInstrumentationKey: observability.outputs.appInsightsInstrumentationKey
+    pipelineDataMode: pipelineDataMode
+    signalsFileSystem: signalsFileSystem
+    signalsFilePath: signalsFilePath
+    demoArtifactsFileSystem: demoArtifactsFileSystem
+    demoOverviewPath: demoOverviewPath
+    demoLeaderboardPath: demoLeaderboardPath
+    demoAreaDetailPath: demoAreaDetailPath
+    demoComparePath: demoComparePath
+    demoTrendsPath: demoTrendsPath
+    demoSourcesPath: demoSourcesPath
+    demoCacheTtlSeconds: demoCacheTtlSeconds
   }
 }
 
@@ -80,7 +124,20 @@ module webApp './modules/web-app.bicep' = {
     location: location
     webAppName: webAppName
     webAppPlanName: webAppPlanName
+    storageAccountName: storage.outputs.storageAccountName
+    storageAccountId: storage.outputs.storageAccountId
+    pipelineDataMode: pipelineDataMode
     predictionApiBaseUrl: 'https://${functionApp.outputs.functionDefaultHostName}'
+    signalsFileSystem: signalsFileSystem
+    signalsFilePath: signalsFilePath
+    demoArtifactsFileSystem: demoArtifactsFileSystem
+    demoOverviewPath: demoOverviewPath
+    demoLeaderboardPath: demoLeaderboardPath
+    demoAreaDetailPath: demoAreaDetailPath
+    demoComparePath: demoComparePath
+    demoTrendsPath: demoTrendsPath
+    demoSourcesPath: demoSourcesPath
+    demoCacheTtlSeconds: demoCacheTtlSeconds
   }
 }
 

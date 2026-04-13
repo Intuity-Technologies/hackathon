@@ -85,14 +85,13 @@ jobs:
       AZURE_RESOURCE_GROUP: ${{ github.event.inputs.resource_group }}
       AZURE_ML_WORKSPACE: ${{ github.event.inputs.workspace_name }}
       AZURE_STORAGE_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
-      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      PIPELINE_DATA_MODE: adls
       AREA_LEVEL: county
       PYTHONPATH: .
       RAW_FILE_SYSTEM: raw
       CURATED_FILE_SYSTEM: curated
       SIGNALS_FILE_SYSTEM: signals
+      DEMO_ARTIFACTS_FILE_SYSTEM: demo
       POPULATION_SOURCE_PATH: cso_population/latest/population.csv
       RENTS_SOURCE_PATH: rents/latest/rents.csv
       PLANNING_SOURCE_PATH: planning/latest/planning.csv
@@ -101,6 +100,12 @@ jobs:
       PLANNING_CURATED_PATH: planning/area_level=county/part-000.parquet
       SIGNALS_FILE_PATH: housing_pressure/area_level=county/part-000.parquet
       SIGNALS_LATEST_JSON_PATH: housing_pressure/latest.json
+      DEMO_OVERVIEW_PATH: housing_pressure/overview.json
+      DEMO_LEADERBOARD_PATH: housing_pressure/leaderboard.json
+      DEMO_AREA_DETAIL_PATH: housing_pressure/area_detail.json
+      DEMO_COMPARE_PATH: housing_pressure/compare.json
+      DEMO_TRENDS_PATH: housing_pressure/trends.json
+      DEMO_SOURCES_PATH: housing_pressure/sources_manifest.json
       PLANNING_STRICT_COUNTY_ONLY: ${{ github.event.inputs.planning_strict_mode || 'auto' }}
       CSO_POPULATION_TABLE_ID: ${{ github.event.inputs.cso_population_table_id || 'PEA08' }}
       CSO_RENTS_TABLE_ID: ${{ github.event.inputs.cso_rents_table_id || 'RIQ02' }}
@@ -171,13 +176,14 @@ jobs:
             --file-system "${RAW_FILE_SYSTEM}" \
             --blob-path "${PLANNING_SOURCE_PATH}"
 
-      - name: Build Curated Signals
+      - name: Build Curated Signals And Demo Artifacts
         if: ${{ github.event.inputs.refresh_data != 'false' }}
         run: |
           python etl/transform/normalize_population.py
           python etl/transform/normalize_rents.py
           python etl/transform/normalize_planning.py
           python etl/transform/build_signals.py
+          python etl/transform/build_demo_artifacts.py
           python etl/tests/check_signals_contract.py \
             --min-periods 4 \
             --min-areas 3

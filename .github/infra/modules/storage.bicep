@@ -17,6 +17,7 @@ param dataContainers array = [
   'raw'
   'curated'
   'signals'
+  'demo'
 ]
 
 resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' = {

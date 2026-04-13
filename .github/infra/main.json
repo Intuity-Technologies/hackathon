@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.42.1.51946",
-      "templateHash": "2931894801597025359"
+      "templateHash": "6375285821672613527"
     }
   },
   "parameters": {
@@ -109,6 +109,83 @@
       "metadata": {
         "description": "Storage SKU for ADLS account."
       }
+    },
+    "pipelineDataMode": {
+      "type": "string",
+      "defaultValue": "adls",
+      "metadata": {
+        "description": "Data access mode used by the deployed apps."
+      }
+    },
+    "signalsFileSystem": {
+      "type": "string",
+      "defaultValue": "signals",
+      "metadata": {
+        "description": "Signals file system used by the API and web app."
+      }
+    },
+    "signalsFilePath": {
+      "type": "string",
+      "defaultValue": "housing_pressure/area_level=county/part-000.parquet",
+      "metadata": {
+        "description": "Signals parquet path consumed by the API and web app."
+      }
+    },
+    "demoArtifactsFileSystem": {
+      "type": "string",
+      "defaultValue": "demo",
+      "metadata": {
+        "description": "Demo artifact file system used by the API and web app."
+      }
+    },
+    "demoOverviewPath": {
+      "type": "string",
+      "defaultValue": "housing_pressure/overview.json",
+      "metadata": {
+        "description": "Overview artifact path for the judged dashboard experience."
+      }
+    },
+    "demoLeaderboardPath": {
+      "type": "string",
+      "defaultValue": "housing_pressure/leaderboard.json",
+      "metadata": {
+        "description": "Leaderboard artifact path for the judged dashboard experience."
+      }
+    },
+    "demoAreaDetailPath": {
+      "type": "string",
+      "defaultValue": "housing_pressure/area_detail.json",
+      "metadata": {
+        "description": "Area detail artifact path for the judged dashboard experience."
+      }
+    },
+    "demoComparePath": {
+      "type": "string",
+      "defaultValue": "housing_pressure/compare.json",
+      "metadata": {
+        "description": "Compare artifact path for the judged dashboard experience."
+      }
+    },
+    "demoTrendsPath": {
+      "type": "string",
+      "defaultValue": "housing_pressure/trends.json",
+      "metadata": {
+        "description": "Trend artifact path for the judged dashboard experience."
+      }
+    },
+    "demoSourcesPath": {
+      "type": "string",
+      "defaultValue": "housing_pressure/sources_manifest.json",
+      "metadata": {
+        "description": "Sources manifest path for the judged dashboard experience."
+      }
+    },
+    "demoCacheTtlSeconds": {
+      "type": "int",
+      "defaultValue": 120,
+      "metadata": {
+        "description": "In-process cache TTL for Azure-hosted demo artifact reads."
+      }
     }
   },
   "resources": [
@@ -139,7 +216,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "3296942022268689870"
+              "templateHash": "16471480682657657259"
             }
           },
           "parameters": {
@@ -172,7 +249,8 @@
               "defaultValue": [
                 "raw",
                 "curated",
-                "signals"
+                "signals",
+                "demo"
               ],
               "metadata": {
                 "description": "Blob containers used by the ETL pipeline."
@@ -369,6 +447,39 @@
           },
           "appInsightsInstrumentationKey": {
             "value": "[reference(resourceId('Microsoft.Resources/deployments', 'observabilityDeployment'), '2025-04-01').outputs.appInsightsInstrumentationKey.value]"
+          },
+          "pipelineDataMode": {
+            "value": "[parameters('pipelineDataMode')]"
+          },
+          "signalsFileSystem": {
+            "value": "[parameters('signalsFileSystem')]"
+          },
+          "signalsFilePath": {
+            "value": "[parameters('signalsFilePath')]"
+          },
+          "demoArtifactsFileSystem": {
+            "value": "[parameters('demoArtifactsFileSystem')]"
+          },
+          "demoOverviewPath": {
+            "value": "[parameters('demoOverviewPath')]"
+          },
+          "demoLeaderboardPath": {
+            "value": "[parameters('demoLeaderboardPath')]"
+          },
+          "demoAreaDetailPath": {
+            "value": "[parameters('demoAreaDetailPath')]"
+          },
+          "demoComparePath": {
+            "value": "[parameters('demoComparePath')]"
+          },
+          "demoTrendsPath": {
+            "value": "[parameters('demoTrendsPath')]"
+          },
+          "demoSourcesPath": {
+            "value": "[parameters('demoSourcesPath')]"
+          },
+          "demoCacheTtlSeconds": {
+            "value": "[parameters('demoCacheTtlSeconds')]"
           }
         },
         "template": {
@@ -378,7 +489,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "10521242715002704620"
+              "templateHash": "16038876452574380352"
             }
           },
           "parameters": {
@@ -424,6 +535,13 @@
                 "description": "Application Insights instrumentation key."
               }
             },
+            "pipelineDataMode": {
+              "type": "string",
+              "defaultValue": "adls",
+              "metadata": {
+                "description": "Data access mode used by the deployed app."
+              }
+            },
             "signalsFileSystem": {
               "type": "string",
               "defaultValue": "signals",
@@ -436,6 +554,62 @@
               "defaultValue": "housing_pressure/area_level=county/part-000.parquet",
               "metadata": {
                 "description": "Signals parquet path consumed by API."
+              }
+            },
+            "demoArtifactsFileSystem": {
+              "type": "string",
+              "defaultValue": "demo",
+              "metadata": {
+                "description": "Demo artifact file system used by API."
+              }
+            },
+            "demoOverviewPath": {
+              "type": "string",
+              "defaultValue": "housing_pressure/overview.json",
+              "metadata": {
+                "description": "Overview artifact path consumed by API."
+              }
+            },
+            "demoLeaderboardPath": {
+              "type": "string",
+              "defaultValue": "housing_pressure/leaderboard.json",
+              "metadata": {
+                "description": "Leaderboard artifact path consumed by API."
+              }
+            },
+            "demoAreaDetailPath": {
+              "type": "string",
+              "defaultValue": "housing_pressure/area_detail.json",
+              "metadata": {
+                "description": "Area detail artifact path consumed by API."
+              }
+            },
+            "demoComparePath": {
+              "type": "string",
+              "defaultValue": "housing_pressure/compare.json",
+              "metadata": {
+                "description": "Compare artifact path consumed by API."
+              }
+            },
+            "demoTrendsPath": {
+              "type": "string",
+              "defaultValue": "housing_pressure/trends.json",
+              "metadata": {
+                "description": "Trend artifact path consumed by API."
+              }
+            },
+            "demoSourcesPath": {
+              "type": "string",
+              "defaultValue": "housing_pressure/sources_manifest.json",
+              "metadata": {
+                "description": "Sources manifest path consumed by API."
+              }
+            },
+            "demoCacheTtlSeconds": {
+              "type": "int",
+              "defaultValue": 120,
+              "metadata": {
+                "description": "In-process demo artifact cache TTL in seconds."
               }
             }
           },
@@ -499,12 +673,48 @@
                       "value": "[parameters('storageAccountName')]"
                     },
                     {
+                      "name": "PIPELINE_DATA_MODE",
+                      "value": "[parameters('pipelineDataMode')]"
+                    },
+                    {
                       "name": "SIGNALS_FILE_SYSTEM",
                       "value": "[parameters('signalsFileSystem')]"
                     },
                     {
                       "name": "SIGNALS_FILE_PATH",
                       "value": "[parameters('signalsFilePath')]"
+                    },
+                    {
+                      "name": "DEMO_ARTIFACTS_FILE_SYSTEM",
+                      "value": "[parameters('demoArtifactsFileSystem')]"
+                    },
+                    {
+                      "name": "DEMO_OVERVIEW_PATH",
+                      "value": "[parameters('demoOverviewPath')]"
+                    },
+                    {
+                      "name": "DEMO_LEADERBOARD_PATH",
+                      "value": "[parameters('demoLeaderboardPath')]"
+                    },
+                    {
+                      "name": "DEMO_AREA_DETAIL_PATH",
+                      "value": "[parameters('demoAreaDetailPath')]"
+                    },
+                    {
+                      "name": "DEMO_COMPARE_PATH",
+                      "value": "[parameters('demoComparePath')]"
+                    },
+                    {
+                      "name": "DEMO_TRENDS_PATH",
+                      "value": "[parameters('demoTrendsPath')]"
+                    },
+                    {
+                      "name": "DEMO_SOURCES_PATH",
+                      "value": "[parameters('demoSourcesPath')]"
+                    },
+                    {
+                      "name": "DEMO_CACHE_TTL_SECONDS",
+                      "value": "[string(parameters('demoCacheTtlSeconds'))]"
                     }
                   ]
                 }
@@ -572,8 +782,47 @@
           "webAppPlanName": {
             "value": "[parameters('webAppPlanName')]"
           },
+          "storageAccountName": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'storageDeployment'), '2025-04-01').outputs.storageAccountName.value]"
+          },
+          "storageAccountId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'storageDeployment'), '2025-04-01').outputs.storageAccountId.value]"
+          },
+          "pipelineDataMode": {
+            "value": "[parameters('pipelineDataMode')]"
+          },
           "predictionApiBaseUrl": {
             "value": "[format('https://{0}', reference(resourceId('Microsoft.Resources/deployments', 'functionAppDeployment'), '2025-04-01').outputs.functionDefaultHostName.value)]"
+          },
+          "signalsFileSystem": {
+            "value": "[parameters('signalsFileSystem')]"
+          },
+          "signalsFilePath": {
+            "value": "[parameters('signalsFilePath')]"
+          },
+          "demoArtifactsFileSystem": {
+            "value": "[parameters('demoArtifactsFileSystem')]"
+          },
+          "demoOverviewPath": {
+            "value": "[parameters('demoOverviewPath')]"
+          },
+          "demoLeaderboardPath": {
+            "value": "[parameters('demoLeaderboardPath')]"
+          },
+          "demoAreaDetailPath": {
+            "value": "[parameters('demoAreaDetailPath')]"
+          },
+          "demoComparePath": {
+            "value": "[parameters('demoComparePath')]"
+          },
+          "demoTrendsPath": {
+            "value": "[parameters('demoTrendsPath')]"
+          },
+          "demoSourcesPath": {
+            "value": "[parameters('demoSourcesPath')]"
+          },
+          "demoCacheTtlSeconds": {
+            "value": "[parameters('demoCacheTtlSeconds')]"
           }
         },
         "template": {
@@ -583,7 +832,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "16773744752073440133"
+              "templateHash": "3686996991636229858"
             }
           },
           "parameters": {
@@ -605,10 +854,99 @@
                 "description": "Flask web app name."
               }
             },
+            "storageAccountName": {
+              "type": "string",
+              "metadata": {
+                "description": "Storage account name used by the dashboard and chat experience."
+              }
+            },
+            "storageAccountId": {
+              "type": "string",
+              "metadata": {
+                "description": "Storage account resource ID used for RBAC."
+              }
+            },
+            "pipelineDataMode": {
+              "type": "string",
+              "defaultValue": "adls",
+              "metadata": {
+                "description": "Data access mode used by the deployed app."
+              }
+            },
             "predictionApiBaseUrl": {
               "type": "string",
               "metadata": {
                 "description": "Public API base URL used by orchestrator."
+              }
+            },
+            "signalsFileSystem": {
+              "type": "string",
+              "defaultValue": "signals",
+              "metadata": {
+                "description": "Signals file system used by the dashboard and chat experience."
+              }
+            },
+            "signalsFilePath": {
+              "type": "string",
+              "defaultValue": "housing_pressure/area_level=county/part-000.parquet",
+              "metadata": {
+                "description": "Signals parquet path consumed by the dashboard and chat experience."
+              }
+            },
+            "demoArtifactsFileSystem": {
+              "type": "string",
+              "defaultValue": "demo",
+              "metadata": {
+                "description": "Demo artifact file system used by the dashboard and chat experience."
+              }
+            },
+            "demoOverviewPath": {
+              "type": "string",
+              "defaultValue": "housing_pressure/overview.json",
+              "metadata": {
+                "description": "Overview artifact path consumed by the dashboard and chat experience."
+              }
+            },
+            "demoLeaderboardPath": {
+              "type": "string",
+              "defaultValue": "housing_pressure/leaderboard.json",
+              "metadata": {
+                "description": "Leaderboard artifact path consumed by the dashboard and chat experience."
+              }
+            },
+            "demoAreaDetailPath": {
+              "type": "string",
+              "defaultValue": "housing_pressure/area_detail.json",
+              "metadata": {
+                "description": "Area detail artifact path consumed by the dashboard and chat experience."
+              }
+            },
+            "demoComparePath": {
+              "type": "string",
+              "defaultValue": "housing_pressure/compare.json",
+              "metadata": {
+                "description": "Compare artifact path consumed by the dashboard and chat experience."
+              }
+            },
+            "demoTrendsPath": {
+              "type": "string",
+              "defaultValue": "housing_pressure/trends.json",
+              "metadata": {
+                "description": "Trend artifact path consumed by the dashboard and chat experience."
+              }
+            },
+            "demoSourcesPath": {
+              "type": "string",
+              "defaultValue": "housing_pressure/sources_manifest.json",
+              "metadata": {
+                "description": "Sources manifest path consumed by the dashboard and chat experience."
+              }
+            },
+            "demoCacheTtlSeconds": {
+              "type": "int",
+              "defaultValue": 120,
+              "metadata": {
+                "description": "In-process demo artifact cache TTL in seconds."
               }
             }
           },
@@ -651,12 +989,74 @@
                     {
                       "name": "PREDICTION_API_BASE_URL",
                       "value": "[parameters('predictionApiBaseUrl')]"
+                    },
+                    {
+                      "name": "PIPELINE_DATA_MODE",
+                      "value": "[parameters('pipelineDataMode')]"
+                    },
+                    {
+                      "name": "AZURE_STORAGE_ACCOUNT",
+                      "value": "[parameters('storageAccountName')]"
+                    },
+                    {
+                      "name": "SIGNALS_FILE_SYSTEM",
+                      "value": "[parameters('signalsFileSystem')]"
+                    },
+                    {
+                      "name": "SIGNALS_FILE_PATH",
+                      "value": "[parameters('signalsFilePath')]"
+                    },
+                    {
+                      "name": "DEMO_ARTIFACTS_FILE_SYSTEM",
+                      "value": "[parameters('demoArtifactsFileSystem')]"
+                    },
+                    {
+                      "name": "DEMO_OVERVIEW_PATH",
+                      "value": "[parameters('demoOverviewPath')]"
+                    },
+                    {
+                      "name": "DEMO_LEADERBOARD_PATH",
+                      "value": "[parameters('demoLeaderboardPath')]"
+                    },
+                    {
+                      "name": "DEMO_AREA_DETAIL_PATH",
+                      "value": "[parameters('demoAreaDetailPath')]"
+                    },
+                    {
+                      "name": "DEMO_COMPARE_PATH",
+                      "value": "[parameters('demoComparePath')]"
+                    },
+                    {
+                      "name": "DEMO_TRENDS_PATH",
+                      "value": "[parameters('demoTrendsPath')]"
+                    },
+                    {
+                      "name": "DEMO_SOURCES_PATH",
+                      "value": "[parameters('demoSourcesPath')]"
+                    },
+                    {
+                      "name": "DEMO_CACHE_TTL_SECONDS",
+                      "value": "[string(parameters('demoCacheTtlSeconds'))]"
                     }
                   ]
                 }
               },
               "dependsOn": [
                 "[resourceId('Microsoft.Web/serverfarms', parameters('webAppPlanName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
+              "name": "[guid(parameters('storageAccountId'), resourceId('Microsoft.Web/sites', parameters('webAppName')), 'Storage Blob Data Reader')]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1')]",
+                "principalId": "[reference(resourceId('Microsoft.Web/sites', parameters('webAppName')), '2023-12-01', 'full').identity.principalId]",
+                "principalType": "ServicePrincipal"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('webAppName'))]"
               ]
             }
           ],
@@ -677,7 +1077,8 @@
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments', 'functionAppDeployment')]"
+        "[resourceId('Microsoft.Resources/deployments', 'functionAppDeployment')]",
+        "[resourceId('Microsoft.Resources/deployments', 'storageDeployment')]"
       ]
     },
     {

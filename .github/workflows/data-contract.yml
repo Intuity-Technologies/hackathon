@@ -27,14 +27,13 @@ jobs:
     timeout-minutes: 20
     env:
       AZURE_STORAGE_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
-      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      PIPELINE_DATA_MODE: adls
       AREA_LEVEL: county
       PYTHONPATH: .
       RAW_FILE_SYSTEM: raw
       CURATED_FILE_SYSTEM: curated
       SIGNALS_FILE_SYSTEM: signals
+      DEMO_ARTIFACTS_FILE_SYSTEM: demo
       POPULATION_SOURCE_PATH: cso_population/year=2022/population.csv
       RENTS_SOURCE_PATH: rents/year=2024/rents.csv
       PLANNING_SOURCE_PATH: planning/year=2024/planning.csv
@@ -43,10 +42,21 @@ jobs:
       PLANNING_CURATED_PATH: planning/area_level=county/part-000.parquet
       SIGNALS_FILE_PATH: housing_pressure/area_level=county/part-000.parquet
       SIGNALS_LATEST_JSON_PATH: housing_pressure/latest.json
+      DEMO_OVERVIEW_PATH: housing_pressure/overview.json
+      DEMO_LEADERBOARD_PATH: housing_pressure/leaderboard.json
+      DEMO_AREA_DETAIL_PATH: housing_pressure/area_detail.json
+      DEMO_COMPARE_PATH: housing_pressure/compare.json
+      DEMO_TRENDS_PATH: housing_pressure/trends.json
+      DEMO_SOURCES_PATH: housing_pressure/sources_manifest.json
       PLANNING_STRICT_COUNTY_ONLY: "true"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Validate Required Azure Config
         run: |
@@ -66,12 +76,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r etl/requirements.txt -r api/requirements.txt
 
-      - name: Build Curated Parquets And Signals
+      - name: Build Curated Parquets, Signals, And Demo Artifacts
         run: |
           python etl/transform/normalize_population.py
           python etl/transform/normalize_rents.py
           python etl/transform/normalize_planning.py
           python etl/transform/build_signals.py
+          python etl/transform/build_demo_artifacts.py
 
       - name: Validate Signal Contract
         run: |
@@ -79,18 +90,24 @@ jobs:
             --min-periods 4 \
             --min-areas 3
 
-      - name: Validate API Can Read Signals
+      - name: Validate API And Demo Artifacts Can Read Azure Storage
         run: |
           python - <<'PY'
-          from api.function_app import MODEL_FEATURE_COLUMNS, load_latest_signals
+          from api.function_app import MODEL_FEATURE_COLUMNS, load_signal_dataframe
+          from service.housing_data import get_area_detail, get_overview
 
-          df = load_latest_signals()
+          df = load_signal_dataframe()
           if df.empty:
-              raise ValueError("API load_latest_signals returned an empty dataframe")
+              raise ValueError("API load_signal_dataframe returned an empty dataframe")
 
           missing = sorted(set(MODEL_FEATURE_COLUMNS) - set(df.columns))
           if missing:
               raise ValueError(f"Signals missing model feature columns: {missing}")
 
-          print(f"API read check passed with {len(df)} rows")
+          overview = get_overview()
+          mayo = get_area_detail("Mayo")
+          if overview["summary"]["counties_covered"] < 26 or not mayo:
+              raise ValueError("Demo artifacts were not published/read correctly from Azure storage")
+
+          print(f"Azure read check passed with {len(df)} signal rows and demo coverage for {overview['summary']['counties_covered']} counties")
           PY

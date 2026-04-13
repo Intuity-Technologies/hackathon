@@ -2,12 +2,34 @@
 
 This folder contains modular Bicep templates for a public review-ready deployment:
 
-- ADLS Gen2 storage for `raw`, `curated`, `signals`
+- ADLS Gen2 storage for `raw`, `curated`, `signals`, and `demo`
 - Azure Functions API host
 - Flask web frontend on Azure App Service
 - Key Vault + Log Analytics + App Insights
 - Optional Azure ML workspace and ACR for model serving
 - Optional Static Web App for public landing pages
+
+## Storage layout
+
+The Bicep deployment provisions the containers that the ETL and demo runtime expect:
+
+- `raw/`
+- `curated/`
+- `signals/`
+- `demo/`
+
+The refresh workflows materialize the file paths inside those containers:
+
+- `signals/housing_pressure/area_level=county/part-000.parquet`
+- `signals/housing_pressure/latest.json`
+- `demo/housing_pressure/overview.json`
+- `demo/housing_pressure/leaderboard.json`
+- `demo/housing_pressure/area_detail.json`
+- `demo/housing_pressure/compare.json`
+- `demo/housing_pressure/trends.json`
+- `demo/housing_pressure/sources_manifest.json`
+
+The Function app receives storage read access plus the full signal/demo path configuration. The Flask App Service receives managed-identity reader access and the same demo path configuration so the judged UI can run directly from Azure-hosted artifacts.
 
 ## Module map
 
