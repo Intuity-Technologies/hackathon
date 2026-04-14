@@ -1,6 +1,13 @@
 from __future__ import annotations
 
 import os
+from typing import Any
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 from flask import Flask, jsonify, redirect, render_template, request, session, url_for
 
@@ -34,24 +41,43 @@ def _trim_messages(messages: list[dict[str, str]]) -> list[dict[str, str]]:
     return messages[-MAX_SESSION_MESSAGES:]
 
 
-@app.route("/", methods=["GET"])
-def index():
+def _llm_configured() -> bool:
+    required = (
+        "AZURE_OPENAI_API_KEY",
+        "AZURE_OPENAI_ENDPOINT",
+        "AZURE_OPENAI_DEPLOYMENT_NAME",
+    )
+    return all(os.getenv(key, "").strip() for key in required)
+
+
+def _page_context() -> dict[str, Any]:
     messages = _ensure_messages()
     overview = get_overview()
     leaderboard = get_leaderboard()
     areas = list_available_areas()
-    featured_area = get_area_detail(overview["featured_counties"][0]["area_name"])
+    featured_name = overview["featured_counties"][0]["area_name"]
+    featured_area = get_area_detail(featured_name)
     default_compare = compare_areas(areas[:2])
-    return render_template(
-        "index.html",
-        messages=messages,
-        overview=overview,
-        leaderboard=leaderboard,
-        available_areas=areas,
-        featured_area=featured_area,
-        default_compare=default_compare,
-        sources_manifest=get_sources_manifest(),
-    )
+    return {
+        "messages": messages,
+        "overview": overview,
+        "leaderboard": leaderboard,
+        "available_areas": areas,
+        "featured_area": featured_area,
+        "default_compare": default_compare,
+        "sources_manifest": get_sources_manifest(),
+        "llm_configured": _llm_configured(),
+    }
+
+
+@app.route("/", methods=["GET"])
+def index():
+    return render_template("indexchat.html", **_page_context())
+
+
+@app.route("/dashboard", methods=["GET"])
+def dashboard():
+    return render_template("index.html", **_page_context())
 
 
 @app.route("/api/ask", methods=["POST"])
@@ -76,7 +102,7 @@ def api_ask():
 @app.route("/clear", methods=["POST"])
 def clear():
     session.pop("messages", None)
-    return redirect(url_for("index"))
+    return redirect(request.referrer or url_for("index"))
 
 
 if __name__ == "__main__":

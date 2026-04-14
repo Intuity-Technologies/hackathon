@@ -6,6 +6,9 @@ on:
       - main
     paths:
       - api/**
+      - service/**
+      - etl/**
+      - scripts/stage_function_app.py
       - .github/workflows/deploy-api.yml
   workflow_dispatch:
 
@@ -21,6 +24,8 @@ jobs:
     name: Deploy Azure Function App
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      FUNCTION_BUNDLE_DIR: .azure-function-package
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -37,8 +42,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r api/requirements.txt
 
-      - name: Compile API
-        run: python -m compileall api
+      - name: Compile Function Sources
+        run: python -m compileall api service etl scripts/stage_function_app.py
+
+      - name: Stage Function Bundle
+        run: python scripts/stage_function_app.py --dest "${FUNCTION_BUNDLE_DIR}"
 
       - name: Validate Required Secrets
         run: |
@@ -51,7 +59,7 @@ jobs:
         uses: Azure/functions-action@v1
         with:
           app-name: ${{ secrets.AZURE_FUNCTIONAPP_NAME }}
-          package: api
+          package: ${{ env.FUNCTION_BUNDLE_DIR }}
           publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
 
       - name: Smoke Test API Health Endpoint
