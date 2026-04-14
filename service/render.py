@@ -65,7 +65,7 @@ FIELD_TEMPLATES = {
 }
 
 
-
+# Render the prediction into a user-friendly format based on the field requested. This is a deterministic process with no LLM involvement to ensure data integrity.
 def render_prediction(artifact: dict, field: str) -> str | None:
     template = FIELD_TEMPLATES.get(field)
     

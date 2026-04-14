@@ -2,6 +2,7 @@ import os
 import json
 from openai import AzureOpenAI
 
+# Azure OpenAI client initialization using environment variables for secure configuration. This client will be used to call the LLM for intent extraction.
 client = AzureOpenAI(
     api_key=os.getenv("AZURE_OPENAI_API_KEY"),
     azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
@@ -39,6 +40,7 @@ Rules:
 - Do NOT include explanations or extra text.
 """
 
+# This function takes a question and extracts structured intent.
 def extract_intent(question: str) -> dict:
     response = client.chat.completions.create(
         model=os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME"),

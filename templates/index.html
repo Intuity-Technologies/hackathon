@@ -6,6 +6,7 @@
 <title>Housing Analysis Assistant</title>
 
 <style>
+  /* Colors and design tokens*/
 :root {
   
   /* Backgrounds */
@@ -205,11 +206,13 @@ button:disabled{ opacity:.6; cursor:not-allowed; }
   const input = document.getElementById("chat-input");
   const sendBtn = document.getElementById("send-btn");
 
+  // Scroll to bottom helper
   function scrollToBottom() {
     chat.scrollTop = chat.scrollHeight;
   }
   scrollToBottom();
 
+  // Helper to add a chat bubble. Returns the row element for potential later modification (e.g. replacing "Thinking…" with actual answer).
   function addBubble(role, text, opts = {}) {
     const row = document.createElement("div");
     row.className = `row ${role}`;
@@ -253,6 +256,7 @@ button:disabled{ opacity:.6; cursor:not-allowed; }
     input.disabled = true;
     sendBtn.disabled = true;
 
+    // make API call
     try {
       const fd = new FormData();
       fd.append("question", question);
