@@ -6,6 +6,7 @@ import azure.functions as func
 
 from api.function_app import area, compare, health, overview
 from service.orchestrator import answer
+from web import app as web_app
 
 
 def _request(
@@ -61,3 +62,27 @@ def test_compare_endpoint_validates_and_returns_payload() -> None:
 
     assert payload["latest_period"] == "2025Q3"
     assert len(payload["areas"]) == 2
+
+
+def test_chat_first_home_and_dashboard_routes_render() -> None:
+    client = web_app.test_client()
+
+    home = client.get("/")
+    dashboard = client.get("/dashboard")
+
+    assert home.status_code == 200
+    assert b"LLM is the primary reviewer experience" in home.data
+    assert b"Conversation workspace" in home.data
+
+    assert dashboard.status_code == 200
+    assert b"County Leaderboard" in dashboard.data
+    assert b"Return to chat-first assistant" in dashboard.data
+
+
+def test_clear_redirects_back_to_referrer() -> None:
+    client = web_app.test_client()
+
+    response = client.post("/clear", headers={"Referer": "http://localhost/dashboard"})
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/dashboard")
