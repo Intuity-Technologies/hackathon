@@ -43,12 +43,21 @@ Supporting signals
 “How many housing completions were there in Carlow in early 2018?”
 
 
-
 If an answer can be produced from an artifact, it will always be deterministic and consistent.
 If not (e.g. vague, incomplete, or abstract questions), the system returns an AI‑generated response with a warning.
 
-Notes
+Key ethical AI design benefits: 
+    1. Modelling
+    - Transparent statistical modelling (GLM) rather than opaque black‑box AI
+    - Clear human accountability for interpretation and use of outputs
 
-Artifacts live in data/processed/ and are the sole source of deterministic answers.
-The LLM is used only for intent parsing and fallback generation.
-The LLM never processes or modifies artifact data.
+    - Each result is accompanied by three levels of explanation, making outputs usable by non‑technical decision‑makers:
+        - Factual – what is happening now and why
+        - Semi‑factual – what near‑term improvements would help
+        - Counterfactual – what must change to move to a better outcome
+
+    2. LLM usage
+    - Artifacts live in data/processed/ and are the sole source of ratified responses.
+    - Determinitsic decision pipeline is used to determine when a generated or ratified response is generated.
+    - The LLM is used only for intent parsing and fallback generation.
+    - The LLM never processes or modifies artifact data.
